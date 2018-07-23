@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "baseUrl": "./",
+        "outDir": "./build/",
+        "sourceMap": true,
+        "noImplicitAny": true,
+        "lib": [ "es2015", "dom" ],
+        "module": "commonjs",
+        "target": "es5",
+        "declaration": true,                   /* Generates corresponding '.d.ts' file. */
+        "paths": { "*": ["node_modules/@types/*", "*"] }
+    },
+    "include": [
+        "./src/**/*"
+    ]
+}

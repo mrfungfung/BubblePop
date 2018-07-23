@@ -1,0 +1,212 @@
+import { shim } from "promise.prototype.finally";
+shim();
+
+import {vec2} from "gl-matrix";
+import {Application, Container, Graphics, interaction, loaders, Rectangle, Sprite, Text, Texture} from "pixi.js";
+// tslint:disable-next-line
+import * as pixiSound from "pixi-sound"; // comes after pixi for dependence
+import * as MSGlobal from "./global";
+
+// tslint:disable:no-var-requires
+const VERSION = require("./assets/version.json");
+const MultiStyleText = require("pixi-multistyle-text");
+// tslint:enable:no-var-requires
+
+declare var process: any;
+
+// Canvas and screen dimensions info
+// *********************************************************
+const g_DevicePixelRatio = window.devicePixelRatio || 1;
+MSGlobal.log("devicePixelRatio = " + g_DevicePixelRatio);
+const DEFAULT_CANVAS_WIDTH = 800;
+const DEFAULT_CANVAS_HEIGHT = 500;
+let g_CanvasWidth: number = DEFAULT_CANVAS_WIDTH;
+let g_CanvasHeight: number = DEFAULT_CANVAS_HEIGHT;
+export const g_CanvasDiv = window.document.createElement("div");
+g_CanvasDiv.id = "canvas_div";
+const g_TheCanvas = window.document.createElement("canvas");
+g_TheCanvas.id = "canvas";
+export let g_PixiApp: Application = null;
+export let g_ScaledRendererWidth: number = 0;
+export let g_ScaledRendererHeight: number = 0;
+export let g_HalfScaledRendererWidth: number = 0;
+export let g_HalfScaledRendererHeight: number = 0;
+
+export let g_IsMobile = MSGlobal.G.mobilecheck();
+const g_FullScreen = true;
+let g_Initialised = false;
+
+// *********************************************************
+// interaction vars
+// *********************************************************
+const CLICKED_TIME_MILLISECS = 500;
+let g_MouseDownTimeMilliSecs = new Date().getTime();
+let g_MouseDown: boolean = false;
+let g_Clicked: boolean = false;
+let g_LastTouchLocalPos: any = null;
+let g_PixiInteractionManager: interaction.InteractionManager = null;
+
+// *********************************************************
+// key functions
+// *********************************************************
+const g_CurrentlyPressedKeys: { [keycode: number]: boolean; } = {};
+window.addEventListener("keyup", function(event) {
+    g_CurrentlyPressedKeys[event.keyCode] = false;
+});
+window.addEventListener("keydown", function(event) {
+    g_CurrentlyPressedKeys[event.keyCode] = true;
+});
+
+// debug
+export let g_DebugText: Text = null;
+export let g_DebugContainer: Container = null;
+
+// *********************************************************
+// top level window events to bootstap everything
+// *********************************************************
+window.addEventListener("resize", onResize);
+function onResize() {
+    MSGlobal.log("onResize()");
+    MSGlobal.log(window.innerWidth);
+    MSGlobal.log(window.innerHeight);
+    MSGlobal.log(window.devicePixelRatio);
+}
+
+window.onload = function() {
+    MSGlobal.PlatformInterface.getAnalyticsManager().init();
+
+    MSGlobal.log("calling initializeAsync");
+    MSGlobal.PlatformInterface.initializeAsync()
+    .then(function() {
+        init();
+
+        MSGlobal.log("calling startGameAsync");
+        MSGlobal.PlatformInterface.startGameAsync()
+        .then(function() {
+            // been removed and the user can see the game viewport
+            MSGlobal.log("calling startGame");
+            startGame();
+        });
+    });
+};
+
+function init() {
+    MSGlobal.log(MSGlobal.PlatformInterface.getContextType());
+    MSGlobal.log(process.env.NODE_ENV);
+    MSGlobal.log(window);
+    MSGlobal.log(window.innerWidth);
+    MSGlobal.log(window.innerHeight);
+    MSGlobal.log(window.devicePixelRatio);
+
+    // fullscreen
+    if (g_IsMobile || g_FullScreen) {
+        g_CanvasWidth = window.innerWidth;
+        g_CanvasHeight = window.innerHeight;
+    }
+
+    g_TheCanvas.style.width = g_CanvasWidth.toString() + "px";
+    g_TheCanvas.style.height = g_CanvasHeight.toString() + "px";
+    g_TheCanvas.style.margin = "0";
+    g_TheCanvas.style.padding = "0";
+    g_TheCanvas.style.display = "block";
+    g_PixiApp = new Application(g_CanvasWidth, g_CanvasHeight,
+                { backgroundColor: 0x000000, view: g_TheCanvas, resolution: g_DevicePixelRatio }, true);
+
+    // really fucked up scaling to make sure that the play area fits the CANVAS area.
+    const ratio = 1.0;
+    g_PixiApp.stage.pivot.set(0.5);
+    g_PixiApp.stage.scale.x = ratio;
+    g_PixiApp.stage.scale.y = ratio;
+
+    const canvas_scale = Math.max(ratio, 1.0);
+    g_ScaledRendererWidth = (g_PixiApp.renderer.width / g_DevicePixelRatio) / canvas_scale;
+    g_ScaledRendererHeight = (g_PixiApp.renderer.height / g_DevicePixelRatio) / canvas_scale;
+    g_HalfScaledRendererWidth = 0.5 * g_ScaledRendererWidth;
+    g_HalfScaledRendererHeight = 0.5 * g_ScaledRendererHeight;
+
+    // set FPS
+    MSGlobal.G.setFPS(g_PixiApp.ticker.FPS);
+
+    // make interaction managers
+    g_PixiInteractionManager = new interaction.InteractionManager(g_PixiApp.renderer);
+    g_PixiInteractionManager.on("mousedown", function(mouseData: any) {
+        g_MouseDown = true;
+        g_Clicked = false;
+        g_MouseDownTimeMilliSecs = new Date().getTime(); });
+    g_PixiInteractionManager.on("mouseup", function(mouseData: any) {
+        g_MouseDown = false;
+        const cur_time = new Date().getTime();
+        g_Clicked = (cur_time - g_MouseDownTimeMilliSecs) < CLICKED_TIME_MILLISECS; });
+    g_PixiInteractionManager.on("touchstart", function(touchEvent: any) {
+        g_MouseDown = true;
+        g_Clicked = false;
+        g_MouseDownTimeMilliSecs = new Date().getTime();
+        g_LastTouchLocalPos = touchEvent.data.getLocalPosition(g_PixiApp.stage); });
+    g_PixiInteractionManager.on("touchmove", function(touchEvent: any) {
+        g_MouseDown = true;
+        g_LastTouchLocalPos = touchEvent.data.getLocalPosition(g_PixiApp.stage); });
+    g_PixiInteractionManager.on("touchend", function(touchEvent: any) {
+        g_MouseDown = false;
+        const cur_time = new Date().getTime();
+        g_Clicked = (cur_time - g_MouseDownTimeMilliSecs) < CLICKED_TIME_MILLISECS;
+        g_LastTouchLocalPos = touchEvent.data.getLocalPosition(g_PixiApp.stage); });
+
+    // debug
+    g_PixiApp.stage.addChild(g_DebugContainer);
+    g_DebugContainer.visible = false;
+    g_DebugText = new Text("debug out");
+    MSGlobal.setFontStyle(g_DebugText);
+    g_DebugText.style.fontSize = 14;
+    g_DebugText.y = 30;
+    g_DebugText.visible = true;
+    g_DebugContainer.addChild(g_DebugText);
+    MSGlobal.setDebugOutEnabled(process.env.NODE_ENV === MSGlobal.G.DEV_ENV);
+
+    document.body.insertBefore(g_CanvasDiv, document.body.firstChild);
+    document.body.style.margin = "0";
+    document.body.style.padding = "0";
+    g_CanvasDiv.appendChild(g_TheCanvas);
+    g_PixiApp.renderer.preserveDrawingBuffer = true;
+    MSGlobal.log("g_PixiApp.renderer.w x h = " + g_PixiApp.renderer.width + " " + g_PixiApp.renderer.height);
+}
+
+// *********************************************************
+function startGame() {
+    g_PixiApp.ticker.add((delta: number) => {
+        mainProcess(delta);
+    });
+}
+
+// *********************************************************
+function mainProcess(delta: number) {
+    if (g_Initialised) {
+        processinput();
+
+        // this is postProcessInput() - clear the click
+        g_Clicked = false;
+
+        processGame();
+        render(delta);
+    }
+}
+
+// *********************************************************
+// Process inputs
+// *********************************************************
+function processinput() {
+    const screenpos = (g_LastTouchLocalPos == null ?
+        g_PixiInteractionManager.mouse.getLocalPosition(g_PixiApp.stage) :
+        g_LastTouchLocalPos);
+}
+
+// *******************************************************************************************************
+// Process function
+function processGame() {
+    // do something
+}
+
+// *******************************************************************************************************
+// Render function
+function render(delta: number) {
+    // something
+}
