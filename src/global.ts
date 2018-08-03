@@ -112,7 +112,7 @@ export function debugOut(m: string, n: number) {
 }
 
 // *************************************************************************************************\
-export function secondsToString(seconds: number, shorten: boolean) {
+export function secondsToString(seconds: number, shorten: boolean, numElements: number) {
     const decomposed = [];
     const units = [];
     const numyears = Math.floor(seconds / 31536000);
@@ -127,9 +127,18 @@ export function secondsToString(seconds: number, shorten: boolean) {
         units.push("years", "days", "hours", "minutes", "seconds");
     }
     let result = "";
-    const MAX_ITEMS = (shorten ? 2 : decomposed.length);
+    const MAX_ITEMS = (numElements ? numElements : decomposed.length);
+    let firstUnitWritten = false;
     for (let i = 0; i < decomposed.length; ++i) {
-      if (decomposed[i] === 0) { continue; }
+      if (decomposed[i] === 0) { // uh oh this is a 0
+          if (!firstUnitWritten) { // well i havent written anything out
+            if (i < decomposed.length - 1) { // ok at least im not the seconds unit
+                continue; // skip it
+            }
+          }
+      }
+
+      firstUnitWritten = true;
       for (let j = i; j < i + MAX_ITEMS && j < decomposed.length; ++j) {
         result += decomposed[j] + " " + units[j] + " ";
       }

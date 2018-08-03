@@ -40,7 +40,7 @@ function buildConfig(configDirs) {
     plugins: [
         new webpack.EnvironmentPlugin({
                                         // NODE_ENV: 'development', // use 'development' unless process.env.NODE_ENV is defined
-                                        WEB: process.env.WEB,
+                                        WEB: 'false',
                                         // DEBUG: false
                                         }),
         // https://github.com/ampedandwired/html-webpack-plugin

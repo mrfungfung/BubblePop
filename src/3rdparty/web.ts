@@ -10,11 +10,11 @@ import {EAdType,
         IPlatform,
         IShareManager} from "../platform";
 
-declare var mixpanel: any;
+// declare var mixpanel: any;
 
 export class WebAnalyticsManager implements IAnalyticsManager {
     public init(): void {
-        mixpanel.init("95bc4979d669b7ee0c2e27335f7d58ee");
+        // mixpanel.init("95bc4979d669b7ee0c2e27335f7d58ee");
     // if (process.env.NODE_ENV === MSGlobal.G.DEV_ENV) {
     //     mixpanel.init("95bc4979d669b7ee0c2e27335f7d58ee");
     // } else if (process.env.NODE_ENV === MSGlobal.G.PROD_ENV) {
@@ -23,11 +23,11 @@ export class WebAnalyticsManager implements IAnalyticsManager {
     }
 
     public logEvent(eventName: any, valueToSum: any, parameters: any): void {
-        mixpanel.track(eventName, parameters);
+        // mixpanel.track(eventName, parameters);
     }
 
     public logTimedEvent(eventName: any): void {
-        mixpanel.time_event(eventName);
+        // mixpanel.time_event(eventName);
     }
 }
 
@@ -171,10 +171,6 @@ export class WebPlatform implements IPlatform {
     }
 
     public setSessionData(data: any): void {
-        // do nothing
-    }
-
-    public signalToFriends(roomName: string) {
         // do nothing
     }
 

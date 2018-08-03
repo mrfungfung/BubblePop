@@ -1,19 +1,20 @@
+// Cordova:
+// copy bundle pipeline?
+// add more build options to package.json
+
 import { shim } from "promise.prototype.finally";
 shim();
 
-import {vec2} from "gl-matrix";
 import {Application, Container, Graphics, interaction, loaders, Rectangle, Sprite, Text, Texture} from "pixi.js";
 // tslint:disable-next-line
 import * as pixiSound from "pixi-sound"; // comes after pixi for dependence
+import * as Game from "./game";
 import * as MSGlobal from "./global";
 
-// tslint:disable:no-var-requires
-const VERSION = require("./assets/version.json");
-const MultiStyleText = require("pixi-multistyle-text");
-// tslint:enable:no-var-requires
-
 declare var process: any;
+declare var window: any;
 
+// *********************************************************
 // Canvas and screen dimensions info
 // *********************************************************
 const g_DevicePixelRatio = window.devicePixelRatio || 1;
@@ -50,16 +51,33 @@ let g_PixiInteractionManager: interaction.InteractionManager = null;
 // key functions
 // *********************************************************
 const g_CurrentlyPressedKeys: { [keycode: number]: boolean; } = {};
-window.addEventListener("keyup", function(event) {
+window.addEventListener("keyup", function(event: any) {
     g_CurrentlyPressedKeys[event.keyCode] = false;
 });
-window.addEventListener("keydown", function(event) {
+window.addEventListener("keydown", function(event: any) {
     g_CurrentlyPressedKeys[event.keyCode] = true;
 });
 
 // debug
 export let g_DebugText: Text = null;
 export let g_DebugContainer: Container = null;
+
+//////////////////////////////////////////////////////////////////////////////////////////
+function onDeviceReady() {
+    MSGlobal.log("onDeviceReady()");
+
+    // if (window.isAndroid) {
+    //     document.addEventListener("backbutton", (e) => {
+    //         system.keyInput.eventDown(8); // this is the back button
+    //         system.keyInput.eventUp(8); // we need to fake this event
+    //         e.preventDefault();
+    //     }, false);
+    // }
+
+    init();
+    MSGlobal.log("calling startGame");
+    startGame();
+}
 
 // *********************************************************
 // top level window events to bootstap everything
@@ -75,19 +93,24 @@ function onResize() {
 window.onload = function() {
     MSGlobal.PlatformInterface.getAnalyticsManager().init();
 
-    MSGlobal.log("calling initializeAsync");
-    MSGlobal.PlatformInterface.initializeAsync()
-    .then(function() {
-        init();
-
-        MSGlobal.log("calling startGameAsync");
-        MSGlobal.PlatformInterface.startGameAsync()
+    if (window.cordova) {
+        MSGlobal.log(window.cordova);
+        document.addEventListener("deviceready", onDeviceReady, false);
+    } else {
+        MSGlobal.log("calling initializeAsync");
+        MSGlobal.PlatformInterface.initializeAsync()
         .then(function() {
-            // been removed and the user can see the game viewport
-            MSGlobal.log("calling startGame");
-            startGame();
+            init();
+
+            MSGlobal.log("calling startGameAsync");
+            MSGlobal.PlatformInterface.startGameAsync()
+            .then(function() {
+                // been removed and the user can see the game viewport
+                MSGlobal.log("calling startGame");
+                startGame();
+            });
         });
-    });
+    }
 };
 
 function init() {
@@ -152,6 +175,7 @@ function init() {
         g_LastTouchLocalPos = touchEvent.data.getLocalPosition(g_PixiApp.stage); });
 
     // debug
+    g_DebugContainer = new Container();
     g_PixiApp.stage.addChild(g_DebugContainer);
     g_DebugContainer.visible = false;
     g_DebugText = new Text("debug out");
@@ -160,7 +184,7 @@ function init() {
     g_DebugText.y = 30;
     g_DebugText.visible = true;
     g_DebugContainer.addChild(g_DebugText);
-    MSGlobal.setDebugOutEnabled(process.env.NODE_ENV === MSGlobal.G.DEV_ENV);
+    // MSGlobal.setDebugOutEnabled(process.env.NODE_ENV === MSGlobal.G.DEV_ENV);
 
     document.body.insertBefore(g_CanvasDiv, document.body.firstChild);
     document.body.style.margin = "0";
@@ -172,6 +196,9 @@ function init() {
 
 // *********************************************************
 function startGame() {
+    Game.show();
+    g_Initialised = true;
+
     g_PixiApp.ticker.add((delta: number) => {
         mainProcess(delta);
     });
@@ -193,20 +220,25 @@ function mainProcess(delta: number) {
 // *********************************************************
 // Process inputs
 // *********************************************************
+let lastFrameMouseDown = g_MouseDown;
 function processinput() {
     const screenpos = (g_LastTouchLocalPos == null ?
         g_PixiInteractionManager.mouse.getLocalPosition(g_PixiApp.stage) :
         g_LastTouchLocalPos);
+
+    Game.processInput(g_Clicked, g_MouseDown, lastFrameMouseDown, screenpos.x, screenpos.y);
+
+    lastFrameMouseDown = g_MouseDown;
 }
 
 // *******************************************************************************************************
 // Process function
 function processGame() {
-    // do something
+    Game.process();
 }
 
 // *******************************************************************************************************
 // Render function
 function render(delta: number) {
-    // something
+    Game.render(delta);
 }

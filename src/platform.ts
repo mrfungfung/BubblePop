@@ -23,7 +23,6 @@ export interface IPlatform {
     getConnectedPlayersAsync(): Promise<IConnectedPlayer[]>;
 
     setSessionData(data: any): void;
-    signalToFriends(roomName: string): void;
 
     shareAsync(payload: any): Promise<any>;
     canCreateShortcutAsync(): Promise<boolean>;
@@ -80,4 +79,4 @@ export interface IShareManager {
 
 import {FBPlatform} from "./3rdparty/facebook";
 import {WebPlatform} from "./3rdparty/web";
-export const PlatformAPI = (process.env.MSTEST_WEB === "true" ? WebPlatform : FBPlatform);
+export const PlatformAPI = (process.env.WEB === "true" ? WebPlatform : FBPlatform);

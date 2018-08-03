@@ -140,18 +140,6 @@ export class FBPlatform implements IPlatform {
     public fbShareManager = new FBShareManager();
     public fbAnalyticsManager = new FBAnalyticsManager();
 
-    public signalToFriends(roomName: string) {
-        // lets also tell the world i am playing
-        Axios.get(MSGlobal.BOT_SERVER + "/sayhitofriends", {
-            params: {
-                contextID: this.getContextID(),
-                playerID: this.getPlayerID(),
-                playerName: this.getPlayerName(),
-                roomName,
-            },
-        });
-    }
-
     public setLoadingProgress(percentage: number): void {
         FBInstant.setLoadingProgress(percentage);
     }

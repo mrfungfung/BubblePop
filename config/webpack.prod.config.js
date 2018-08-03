@@ -8,7 +8,7 @@ function buildConfig(configDirs) {
     prodConfig.optimization.minimizer = [
         new UglifyJsPlugin()
     ];
-    if (process.env.MSTEST_WEB === 'true') {
+    if (process.env.WEB === 'true') {
         prodConfig.externals = {
             "gl-matrix" : "{vec2, vec3}",
             "pixi.js": "PIXI"

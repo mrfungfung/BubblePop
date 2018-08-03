@@ -3,6 +3,7 @@ media
 dist
 node_modules
 build
+cordova
 .env
 .vscode
 npm-debug.log*

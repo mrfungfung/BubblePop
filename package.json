@@ -12,6 +12,7 @@
     "build": "NODE_ENV=production webpack -p --progress --colors --display-error-details --config ./config/webpack.config.js",
     "build_web": "NODE_ENV=production WEB=true webpack -p --progress --colors --display-error-details --config ./config/webpack.config.js",
     "build_dev": "NODE_ENV=development webpack -d --progress --colors --display-error-details --config ./config/webpack.config.js",
+    "build_dev_web": "NODE_ENV=development WEB=true webpack -d --progress --colors --display-error-details --config ./config/webpack.config.js",
     "deploy": "node ./scripts/deploy.js",
     "tsc": "tsc",
     "tslint": "tslint",
