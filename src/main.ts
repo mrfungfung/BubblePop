@@ -1,6 +1,12 @@
-// Cordova:
-// copy bundle pipeline?
-// add more build options to package.json
+// different states
+// make it not look like shit
+
+// build out framework - settings for sound/music
+// coin shop?
+// leaderboards
+// context switch / sharing and updates
+
+// ideas: amiga zombie clicker, plane challenger
 
 import { shim } from "promise.prototype.finally";
 shim();
@@ -9,7 +15,9 @@ import {Application, Container, Graphics, interaction, loaders, Rectangle, Sprit
 // tslint:disable-next-line
 import * as pixiSound from "pixi-sound"; // comes after pixi for dependence
 import * as Game from "./game";
+import * as GameOver from "./gameover";
 import * as MSGlobal from "./global";
+import * as Title from "./title";
 
 declare var process: any;
 declare var window: any;
@@ -58,11 +66,68 @@ window.addEventListener("keydown", function(event: any) {
     g_CurrentlyPressedKeys[event.keyCode] = true;
 });
 
+// *********************************************************
 // debug
 export let g_DebugText: Text = null;
 export let g_DebugContainer: Container = null;
 
-//////////////////////////////////////////////////////////////////////////////////////////
+// *********************************************************
+export enum EGameState {
+    EGAMESTATE_TITLE = 0,
+    EGAMESTATE_IN_GAME,
+    EGAMESTATE_GAME_OVER,
+    EGAMESTATE_COUNT,
+}
+let gameState = EGameState.EGAMESTATE_TITLE;
+export function setGameState(g: EGameState) {
+    switch (gameState) {
+        case EGameState.EGAMESTATE_TITLE:
+        {
+            Title.hide();
+        }
+        break;
+        case EGameState.EGAMESTATE_IN_GAME:
+        {
+            Game.hide();
+        }
+        break;
+        case EGameState.EGAMESTATE_GAME_OVER:
+        {
+            GameOver.hide();
+        }
+        break;
+        default:
+        break;
+    }
+
+    // switch over
+    gameState = g;
+    switch (gameState) {
+        case EGameState.EGAMESTATE_TITLE:
+        {
+            Title.show();
+        }
+        break;
+        case EGameState.EGAMESTATE_IN_GAME:
+        {
+            Game.show();
+        }
+        break;
+        case EGameState.EGAMESTATE_GAME_OVER:
+        {
+            GameOver.show();
+        }
+        break;
+        default:
+        break;
+    }
+}
+
+export const GUMPH = 30;
+export const SMALL_GUMPH = 5;
+// *********************************************************
+
+// *********************************************************
 function onDeviceReady() {
     MSGlobal.log("onDeviceReady()");
 
@@ -196,7 +261,7 @@ function init() {
 
 // *********************************************************
 function startGame() {
-    Game.show();
+    Title.show();
     g_Initialised = true;
 
     g_PixiApp.ticker.add((delta: number) => {
@@ -226,7 +291,25 @@ function processinput() {
         g_PixiInteractionManager.mouse.getLocalPosition(g_PixiApp.stage) :
         g_LastTouchLocalPos);
 
-    Game.processInput(g_Clicked, g_MouseDown, lastFrameMouseDown, screenpos.x, screenpos.y);
+    switch (gameState) {
+        case EGameState.EGAMESTATE_TITLE:
+        {
+            Title.processInput(g_Clicked, g_MouseDown, lastFrameMouseDown, screenpos.x, screenpos.y);
+        }
+        break;
+        case EGameState.EGAMESTATE_IN_GAME:
+        {
+            Game.processInput(g_Clicked, g_MouseDown, lastFrameMouseDown, screenpos.x, screenpos.y);
+        }
+        break;
+        case EGameState.EGAMESTATE_GAME_OVER:
+        {
+            GameOver.processInput(g_Clicked, g_MouseDown, lastFrameMouseDown, screenpos.x, screenpos.y);
+        }
+        break;
+        default:
+        break;
+    }
 
     lastFrameMouseDown = g_MouseDown;
 }
@@ -234,11 +317,47 @@ function processinput() {
 // *******************************************************************************************************
 // Process function
 function processGame() {
-    Game.process();
+    switch (gameState) {
+        case EGameState.EGAMESTATE_TITLE:
+        {
+            Title.process();
+        }
+        break;
+        case EGameState.EGAMESTATE_IN_GAME:
+        {
+            Game.process();
+        }
+        break;
+        case EGameState.EGAMESTATE_GAME_OVER:
+        {
+            GameOver.process();
+        }
+        break;
+        default:
+        break;
+    }
 }
 
 // *******************************************************************************************************
 // Render function
 function render(delta: number) {
-    Game.render(delta);
+    switch (gameState) {
+        case EGameState.EGAMESTATE_TITLE:
+        {
+            Title.render(delta);
+        }
+        break;
+        case EGameState.EGAMESTATE_IN_GAME:
+        {
+            Game.render(delta);
+        }
+        break;
+        case EGameState.EGAMESTATE_GAME_OVER:
+        {
+            GameOver.render(delta);
+        }
+        break;
+        default:
+        break;
+    }
 }

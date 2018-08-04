@@ -1,5 +1,5 @@
 import {vec2} from "gl-matrix";
-import {MSGlobal as G} from "minisquadron-core";
+import {MSGlobal as G} from "minisquadron-core/lib";
 export {G};
 import * as main from "./main";
 
@@ -17,7 +17,6 @@ declare var process: any;
 
 import {IPlatform, PlatformAPI} from "./platform";
 export const PlatformInterface: IPlatform = new PlatformAPI();
-
 
 // *********************************************************
 export function log(v: any): void {
