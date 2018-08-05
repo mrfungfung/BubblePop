@@ -41,6 +41,13 @@ export class Button {
         this.m_Sprite.y = this.m_CenterPos[1];
     }
 
+    public getHalfHeight() {
+        return 0.5 * this.m_Size[1];
+    }
+    public getBottomY() {
+        return this.m_CenterPos[1] + 0.5 * this.m_Size[1];
+    }
+
     public setSizeToText(border: number) {
         if (this.m_Text) {
             this.m_Size = vec2.fromValues(this.m_Text.width + border, this.m_Text.height + border);

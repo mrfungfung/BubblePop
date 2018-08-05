@@ -1,22 +1,17 @@
-// no numbers
-// time carries over!
-// set and show hiscore
-// total bubbles popped ever?
-// sometimes coin bubbles...(timer for next one)
-// face bubble textures
-// balance 2
-
 import {vec2} from "gl-matrix";
 import {Container, Graphics} from "pixi.js";
 import { Button } from "./button";
+import * as GameOver from "./gameover";
 import * as MSGlobal from "./global";
 import * as main from "./main";
+import * as Options from "./options";
 
 // tslint:disable:no-var-requires
 const MultiStyleText = require("pixi-multistyle-text");
 // tslint:enable:no-var-requires
 
 // *********************************************************
+let topUIContainer: Container = null;
 let countdownContainer: Container = null;
 let gameContainer: Container = null;
 let circleGraphics: Graphics = null;
@@ -26,22 +21,33 @@ let countdownTimerStartMillisecs: number = 0;
 let countdownTimerGraphics: Graphics = null;
 let countdownTimerButton: Button = null;
 let levelButton: Button = null;
+let optionsButton: Button = null;
+
+let optionsShowTimeMillisecs = 0;
 
 const COUNT_DOWN_SECS = 2.5;
 const TIME_PER_GAME_SECS = 5;
 const MIN_RADIUS = 20;
 const MAX_RADIUS = 60;
+const COIN_MAX_RADIUS = 35;
 const MIN_LEVEL_FOR_MOVING = 1;
 const MIN_LEVEL_FOR_TELEPORT = 2;
 const PERCENT_TO_CONSIDER_FOR_TELEPORT = 0.2;
 const NUM_TELEPORT_INCREASES = 5;
 const PROB_TELEPORT = 0.5;
+const TIME_TO_COIN_SECS = 2 * 60;
 
 let startTimeSecs: number = null;
+let currentTimePerGameSecs: number = 0;
+let leftOverTimeSecs: number = 0;
 let score: number = 0;
+export let hiscore: number = 0;
+export let totalBubblesPoppedEver: number = 0;
 let coins: number = 0;
 let level = -1;
 let numBubblesInLevel = 0;
+let currentPopIndex = 0;
+let lastCoinAppearTimeSecs: number = 0;
 
 let buttonGraphics: Graphics = null;
 let timerButton: Button = null;
@@ -49,7 +55,8 @@ let scoreButton: Button = null;
 let coinsButton: Button = null;
 
 class Circle {
-    public index: number = 0;
+    public isCoin: boolean = false;
+    public index: number = -1;
     public pos: vec2 = null;
     public target: vec2 = null;
     public origRadius: number = 0;
@@ -62,15 +69,67 @@ class Circle {
 let circles: Circle[] = [];
 
 // *********************************************************
-export function show() {
+export function resetsaveload() {
+    MSGlobal.PlatformInterface.setStatsAsync({
+        coins: 0,
+        hiscore: 0,
+        lastCoinAppearTimeSecs: 0,
+        totalBubblesPoppedEver: 0,
+    })
+    .then(function() {
+        // do something
+    });
+}
+
+// *********************************************************
+export function load() {
+    MSGlobal.PlatformInterface.getStatsAsync([
+        "coins",
+        "hiscore",
+        "lastCoinAppearTimeSecs",
+        "totalBubblesPoppedEver",
+    ])
+    .then(function(data: any) {
+        // set the level data in mapselect thingy
+        MSGlobal.log(data);
+        if (data.coins) { coins = data.coins; }
+        if (data.hiscore) { hiscore = data.hiscore; }
+        if (data.totalBubblesPoppedEver) { totalBubblesPoppedEver = data.totalBubblesPoppedEver; }
+        if (data.lastCoinAppearTimeSecs) { lastCoinAppearTimeSecs = data.lastCoinAppearTimeSecs; }
+    });
+}
+
+// *********************************************************
+export function save() {
+    MSGlobal.PlatformInterface.setStatsAsync({
+        coins,
+        hiscore,
+        lastCoinAppearTimeSecs,
+        totalBubblesPoppedEver,
+    })
+    .then(function() {
+        // do something
+    });
+}
+
+// *********************************************************
+export function resetGame() {
     // reset everything
     score = 0;
     level = -1;
     numBubblesInLevel = 0;
-
+    leftOverTimeSecs = 0;
+}
+export function continueGame() {
+    // put the level back one, but everything remains
+    --level;
+}
+export function show() {
     gameContainer = new Container();
     countdownContainer = new Container();
+    topUIContainer = new Container();
     main.g_PixiApp.stage.addChild(countdownContainer);
+    main.g_PixiApp.stage.addChild(topUIContainer);
 
     // countdown
     countdownTimerGraphics = new Graphics();
@@ -109,7 +168,7 @@ export function show() {
     gameContainer.addChild(circleGraphics);
 
     buttonGraphics = new Graphics();
-    gameContainer.addChild(buttonGraphics);
+    topUIContainer.addChild(buttonGraphics);
 
     timerButton = new Button("Time: ", null);
     timerButton.setSizeToText(main.GUMPH);
@@ -122,11 +181,9 @@ export function show() {
     ));
     timerButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
         0x7a00cf, 0.95, buttonGraphics);
-    timerButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-            0x7a00cf, 0.95, countdownTimerGraphics);
-    countdownContainer.addChild(timerButton.m_Text);
+    topUIContainer.addChild(timerButton.m_Text);
 
-    scoreButton = new Button("Score: " + score, null);
+    scoreButton = new Button(score + " Hi: " + hiscore, null);
     scoreButton.setSizeToText(main.GUMPH);
     scoreButton.setSize(vec2.fromValues(
         100, scoreButton.m_Size[1],
@@ -137,9 +194,18 @@ export function show() {
     ));
     scoreButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
         0x7a00cf, 0.95, buttonGraphics);
-    gameContainer.addChild(scoreButton.m_Text);
+    topUIContainer.addChild(scoreButton.m_Text);
 
-    coinsButton = new Button("Coins: " + coins, null);
+    coinsButton = new Button("", {
+        default: {
+            fill: "0xFFFFFF",
+            fontSize: "12px",
+            lineJoin: "round",
+            stroke: "0x0",
+            strokeThickness: "4",
+        },
+    });
+    updateTimeToCoin();
     coinsButton.setSizeToText(main.GUMPH);
     coinsButton.setSize(vec2.fromValues(
         100, coinsButton.m_Size[1],
@@ -150,9 +216,20 @@ export function show() {
     ));
     coinsButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
         0xFFD700, 0.95, buttonGraphics);
-    coinsButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0xFFD700, 0.95, countdownTimerGraphics);
-    countdownContainer.addChild(coinsButton.m_Text);
+    topUIContainer.addChild(coinsButton.m_Text);
+
+    // actual in game UI
+    const ingameGfx = new Graphics();
+    gameContainer.addChild(ingameGfx);
+    optionsButton = new Button("O", null);
+    optionsButton.setSizeToText(main.GUMPH);
+    optionsButton.setCenterPos(vec2.fromValues(
+        main.g_ScaledRendererWidth - 0.5 * optionsButton.m_Size[0],
+        main.g_ScaledRendererHeight - 0.5 * optionsButton.m_Size[1],
+    ));
+    optionsButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
+        0xff0000, 0.95, ingameGfx);
+    gameContainer.addChild(optionsButton.m_Text);
 
     BOTTOM_Y = timerButton.m_CenterPos[1] + 0.5 * timerButton.m_Size[1] + main.SMALL_GUMPH;
 
@@ -162,14 +239,21 @@ export function show() {
 // *******************************************************************************************************
 export function hide() {
     main.g_PixiApp.stage.removeChild(gameContainer);
-    circleGraphics = null;
+    main.g_PixiApp.stage.removeChild(countdownContainer);
+    main.g_PixiApp.stage.removeChild(topUIContainer);
+    gameContainer = null;
+    countdownContainer = null;
+    topUIContainer = null;
 }
 
 // *******************************************************************************************************
 function startTimerForLevel() {
+    const extraTimeSecs = Math.floor(0.5 * leftOverTimeSecs);
+    currentTimePerGameSecs = TIME_PER_GAME_SECS + extraTimeSecs;
+
     // set the timer for countdown
     countdownTimerStartMillisecs = Date.now();
-    timerButton.m_Text.text = "Time: " + TIME_PER_GAME_SECS;
+    timerButton.m_Text.text = "Time: " + currentTimePerGameSecs;
 
     // set the round number and level up
     ++level;
@@ -182,11 +266,22 @@ function initNewBubbles() {
     startTimeSecs = Date.now() / 1000;
 
     circles = [];
+    currentPopIndex = 0;
+    const MIN_LEVEL_FOR_POP_INDEX = 1;
+    let popIndex = 0;
 
     for (let i = 0; i < numBubblesInLevel; ++i) {
         const c = new Circle();
-        c.index = i;
-        c.origRadius = MSGlobal.G.randomInt_range(MIN_RADIUS, MAX_RADIUS);
+        const timeElapsedSinceLastCoinSecs = (Date.now() - lastCoinAppearTimeSecs) / 1000;
+        if (timeElapsedSinceLastCoinSecs > TIME_TO_COIN_SECS &&
+            Math.random() < 0.9) {
+            lastCoinAppearTimeSecs = Date.now();
+            c.isCoin = true;
+        }
+        if (!c.isCoin && level >= MIN_LEVEL_FOR_POP_INDEX && Math.random() < 0.5) {
+            c.index = popIndex++;
+        }
+        c.origRadius = MSGlobal.G.randomInt_range(MIN_RADIUS, c.isCoin ? COIN_MAX_RADIUS : MAX_RADIUS);
         c.radius = c.origRadius;
         let valid = false;
         while (!valid) {
@@ -206,24 +301,31 @@ function initNewBubbles() {
         }
 
         // find a target pos
-        if (level >= MIN_LEVEL_FOR_MOVING) {
-            c.speed = 1.0 + (level - MIN_LEVEL_FOR_MOVING) * 0.5;
+        if (c.isCoin || level >= MIN_LEVEL_FOR_MOVING) {
+            if (c.isCoin) {
+                c.speed = 5.0;
+            } else {
+                c.speed = 1.0 + (level - MIN_LEVEL_FOR_MOVING) * 0.5;
+            }
             updateTarget(c, null);
         }
 
-        c.text = new MultiStyleText(i + 1, {
-            default: {
-                fill: "0xFFFFFF",
-                fontSize: "20px",
-                lineJoin: "round",
-                stroke: "0x0",
-                strokeThickness: "4",
-            },
-        });
-        c.text.anchor.set(0.5);
-        c.text.x = c.pos[0];
-        c.text.y = c.pos[1];
-        gameContainer.addChild(c.text);
+        if (c.index >= 0) {
+            c.text = new MultiStyleText(c.index + 1, {
+                default: {
+                    fill: "0xFFFFFF",
+                    fontSize: "20px",
+                    lineJoin: "round",
+                    stroke: "0x0",
+                    strokeThickness: "4",
+                },
+            });
+            c.text.anchor.set(0.5);
+            c.text.x = c.pos[0];
+            c.text.y = c.pos[1];
+            gameContainer.addChild(c.text);
+        }
+
         circles.push(c);
     }
 
@@ -250,7 +352,7 @@ function updateTarget(c: Circle, forceTeleport: boolean) {
             c.teleport = true;
             c.teleportStartTimerMillisecs = Date.now();
         }
-    } else if (level >= MIN_LEVEL_FOR_TELEPORT) {
+    } else if (!c.isCoin && level >= MIN_LEVEL_FOR_TELEPORT) {
         let considerP = PERCENT_TO_CONSIDER_FOR_TELEPORT;
         considerP += Math.min(1.0, (level - MIN_LEVEL_FOR_TELEPORT) / NUM_TELEPORT_INCREASES)
                 * (1.0 - PERCENT_TO_CONSIDER_FOR_TELEPORT);
@@ -266,9 +368,23 @@ function updateTarget(c: Circle, forceTeleport: boolean) {
 function updateTimer(): boolean {
     // adjust the UI for time left
     const timeElapsedSecs = (Date.now() / 1000 - startTimeSecs);
-    const timeLeftSecs = Math.max(TIME_PER_GAME_SECS - timeElapsedSecs, 0);
+    const timeLeftSecs = Math.max(currentTimePerGameSecs - timeElapsedSecs, 0);
     timerButton.m_Text.text = "Time: " + (Math.floor(timeLeftSecs) + 1);
     return (timeLeftSecs === 0);
+}
+
+// *******************************************************************************************************
+function updateTimeToCoin() {
+    const timeElapsedSinceLastCoinSecs = (Date.now() - lastCoinAppearTimeSecs) / 1000;
+    const timeToCoinLeftSecs = Math.max(0, TIME_TO_COIN_SECS - timeElapsedSinceLastCoinSecs);
+    let timeToCoinLeftSecsString = "";
+    if (timeToCoinLeftSecs === 0) {
+        timeToCoinLeftSecsString = "Coin will come";
+    } else {
+        timeToCoinLeftSecsString = MSGlobal.secondsToString(timeToCoinLeftSecs, true, 2);
+    }
+
+    coinsButton.m_Text.text = "Coins: " + coins + "\n" + timeToCoinLeftSecsString;
 }
 
 // *******************************************************************************************************
@@ -276,11 +392,11 @@ function transitionToInGame() {
     main.g_PixiApp.stage.removeChild(countdownContainer);
     main.g_PixiApp.stage.addChild(gameContainer);
 
-    countdownContainer.removeChild(timerButton.m_Text);
-    gameContainer.addChild(timerButton.m_Text);
+    // countdownContainer.removeChild(timerButton.m_Text);
+    // gameContainer.addChild(timerButton.m_Text);
 
-    countdownContainer.removeChild(coinsButton.m_Text);
-    gameContainer.addChild(coinsButton.m_Text);
+    // countdownContainer.removeChild(coinsButton.m_Text);
+    // gameContainer.addChild(coinsButton.m_Text);
 
     countdownTimerStartMillisecs = 0; // signal
     initNewBubbles();
@@ -291,17 +407,45 @@ function transitionToCountdown() {
     main.g_PixiApp.stage.removeChild(gameContainer);
     main.g_PixiApp.stage.addChild(countdownContainer);
 
-    gameContainer.removeChild(timerButton.m_Text);
-    countdownContainer.addChild(timerButton.m_Text);
+    // gameContainer.removeChild(timerButton.m_Text);
+    // countdownContainer.addChild(timerButton.m_Text);
 
-    gameContainer.removeChild(coinsButton.m_Text);
-    countdownContainer.addChild(coinsButton.m_Text);
+    // gameContainer.removeChild(coinsButton.m_Text);
+    // countdownContainer.addChild(coinsButton.m_Text);
+
+    // work out time left
+    const timeElapsedSecs = (Date.now() / 1000 - startTimeSecs);
+    leftOverTimeSecs = Math.max(currentTimePerGameSecs - timeElapsedSecs, 0);
 
     startTimerForLevel();
 }
 
 // *******************************************************************************************************
+function gameOver() {
+    let isHiScore = false;
+    if (score > hiscore) {
+        hiscore = score;
+        isHiScore = true;
+    }
+    save();
+    GameOver.setLastScore(score, isHiScore);
+    main.setGameState(main.EGameState.EGAMESTATE_GAME_OVER);
+}
+
+// *******************************************************************************************************
 export function process() {
+    if (Options.isOnShow()) {
+        Options.process();
+    } else {
+        processInGame();
+    }
+}
+
+// *******************************************************************************************************
+export function processInGame() {
+    // always update coin
+    updateTimeToCoin();
+
     if (countdownTimerStartMillisecs > 0) { // do timer countdown
         const timeElapsedMillisecs = Date.now() - countdownTimerStartMillisecs;
         const timeLeftSecs = Math.max(0, COUNT_DOWN_SECS - timeElapsedMillisecs / 1000);
@@ -316,9 +460,9 @@ export function process() {
             countdownTimerButton.m_Text.text = displayText;
         }
     } else {
-        const gameOver = updateTimer();
-        if (gameOver) {
-            main.setGameState(main.EGameState.EGAMESTATE_GAME_OVER);
+        const isGameOver = updateTimer();
+        if (isGameOver) {
+            gameOver();
         } else {
             for (const c of circles) {
                 if (c.target) {
@@ -356,8 +500,10 @@ export function process() {
                     }
 
                     // update the text
-                    c.text.x = c.pos[0];
-                    c.text.y = c.pos[1];
+                    if (c.text) {
+                        c.text.x = c.pos[0];
+                        c.text.y = c.pos[1];
+                    }
                 }
             }
             updateRenderCircles();
@@ -369,8 +515,16 @@ export function process() {
 function updateRenderCircles() {
     circleGraphics.clear();
 
+    circleGraphics.beginFill(0xFFD700);
+    for (const c of circles) {
+        if (!c.isCoin) { continue; }
+        circleGraphics.drawCircle(c.pos[0], c.pos[1], c.radius);
+    }
+    circleGraphics.endFill();
+
     circleGraphics.beginFill(0xFFD0D0);
     for (const c of circles) {
+        if (c.isCoin) { continue; }
         circleGraphics.drawCircle(c.pos[0], c.pos[1], c.radius);
     }
     circleGraphics.endFill();
@@ -385,9 +539,18 @@ function updateRenderCircles() {
 
 // *******************************************************************************************************
 function popBubble(c: Circle) {
-    score += 1;
-    scoreButton.m_Text.text = "Score: " + score;
-    gameContainer.removeChild(c.text);
+    ++totalBubblesPoppedEver;
+    if (c.index >= 0) { currentPopIndex++; }
+    if (c.isCoin) {
+        coins++;
+        coinsButton.m_Text.text = "Coins: " + coins;
+        save(); // special
+    } else {
+        score++;
+        scoreButton.m_Text.text = score + " Hi: " + hiscore;
+    }
+
+    if (c.text) { gameContainer.removeChild(c.text); }
     c.text = null;
 }
 
@@ -397,7 +560,39 @@ export function processInput(clicked: boolean,
                              lastFrameMouseDown: boolean,
                              screenX: number,
                              screenY: number) {
+    if (Options.isOnShow()) {
+        const finish = Options.processInput(
+                                            clicked,
+                                            mouseDown,
+                                            lastFrameMouseDown,
+                                            screenX,
+                                            screenY);
+        if (finish) {
+            const deltaTimeMS = Date.now() - optionsShowTimeMillisecs;
+
+            // adjust all timers
+            startTimeSecs += deltaTimeMS / 1000;
+        }
+    } else {
+        processInputInGame(
+            clicked,
+            mouseDown,
+            lastFrameMouseDown,
+            screenX,
+            screenY);
+    }
+}
+
+// *******************************************************************************************************
+export function processInputInGame(clicked: boolean,
+                                   mouseDown: boolean,
+                                   lastFrameMouseDown: boolean,
+                                   screenX: number,
+                                   screenY: number) {
     if (countdownTimerStartMillisecs > 0) { // do timer countdown
+    } else if (optionsButton.contains(vec2.fromValues(screenX, screenY))) {
+        optionsShowTimeMillisecs = Date.now();
+        Options.show();
     } else {
         if (!lastFrameMouseDown && mouseDown) {
             const touchedCircles = [];
@@ -412,9 +607,9 @@ export function processInput(clicked: boolean,
             }
             if (touchedCircles.length > 0) {
                 let popped = false;
-                const currentIndex = numBubblesInLevel - circles.length;
                 for (const tc of touchedCircles) {
-                    if (tc.circle.index === currentIndex) {
+                    if (tc.circle.index === -1 ||
+                        tc.circle.index === currentPopIndex) {
                         popped = true;
                         popBubble(tc.circle);
                         circles[tc.idx] = circles[circles.length - 1];

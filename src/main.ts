@@ -1,12 +1,20 @@
-// different states
-// make it not look like shit
+// coin shop
+// - flash on new item and make it clickable
+// - invite friend
+// - power ups? (visuals only - more and more whacky ways the bubble explodes)
 
-// build out framework - settings for sound/music
-// coin shop?
-// leaderboards
-// context switch / sharing and updates
+// on game leave, if context, post hiscore (customupdate)
 
-// ideas: amiga zombie clicker, plane challenger
+// game
+// - balance 2
+// - points vs sequence?
+// - make it not look like shit
+// - time is a LINE
+// sound
+
+// bottage: 1 / 3 / 5 day reminder (+ coins ready bonus)
+
+// ideas: amiga zombie clicker, plane challenger, fomo3d
 
 import { shim } from "promise.prototype.finally";
 shim();
@@ -17,6 +25,7 @@ import * as pixiSound from "pixi-sound"; // comes after pixi for dependence
 import * as Game from "./game";
 import * as GameOver from "./gameover";
 import * as MSGlobal from "./global";
+import * as Options from "./options";
 import * as Title from "./title";
 
 declare var process: any;
@@ -170,6 +179,11 @@ window.onload = function() {
             MSGlobal.log("calling startGameAsync");
             MSGlobal.PlatformInterface.startGameAsync()
             .then(function() {
+                // grab save data
+                // Game.resetsaveload();
+                Options.load();
+                Game.load();
+
                 // been removed and the user can see the game viewport
                 MSGlobal.log("calling startGame");
                 startGame();

@@ -180,6 +180,12 @@ export class WebPlatform implements IPlatform {
         });
     }
 
+    public chooseAsync(): Promise<any> {
+        return new Promise(function(resolve: any, reject: any) {
+            resolve();
+        });
+    }
+
     public canCreateShortcutAsync(): Promise<boolean> {
         return new Promise(function(resolve: any, reject: any) {
             resolve(false);

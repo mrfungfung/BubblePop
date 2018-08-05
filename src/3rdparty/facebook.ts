@@ -216,6 +216,10 @@ export class FBPlatform implements IPlatform {
         return FBInstant.shareAsync(payload);
     }
 
+    public chooseAsync(): Promise<any> {
+        return FBInstant.context.chooseAsync();
+    }
+
     public getShareManager(): IShareManager {
         return this.fbShareManager;
     }
