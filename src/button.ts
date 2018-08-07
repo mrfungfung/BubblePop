@@ -41,11 +41,26 @@ export class Button {
         this.m_Sprite.y = this.m_CenterPos[1];
     }
 
+    public getHalfWidth() {
+        return 0.5 * this.m_Size[0];
+    }
     public getHalfHeight() {
         return 0.5 * this.m_Size[1];
     }
+    public getTopY() {
+        return this.m_CenterPos[1] - 0.5 * this.m_Size[1];
+    }
     public getBottomY() {
         return this.m_CenterPos[1] + 0.5 * this.m_Size[1];
+    }
+    public getLeftX() {
+        return this.m_CenterPos[0] - 0.5 * this.m_Size[0];
+    }
+    public getRightX() {
+        return this.m_CenterPos[0] + 0.5 * this.m_Size[0];
+    }
+    public getYBelowOtherButtonWithGap(otherButton: Button, gap: number) {
+        return otherButton.getBottomY() + gap + this.getHalfHeight();
     }
 
     public setSizeToText(border: number) {

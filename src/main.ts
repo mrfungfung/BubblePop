@@ -1,15 +1,9 @@
-// coin shop
-// - flash on new item and make it clickable
-// - invite friend
-// - power ups? (visuals only - more and more whacky ways the bubble explodes)
-
-// on game leave, if context, post hiscore (customupdate)
-
 // game
+// - points vs sequence vs number of times? (upgrade your finger power!)
 // - balance 2
-// - points vs sequence?
 // - make it not look like shit
-// - time is a LINE
+// - do custommessage with base64 picture...
+
 // sound
 
 // bottage: 1 / 3 / 5 day reminder (+ coins ready bonus)
@@ -19,13 +13,16 @@
 import { shim } from "promise.prototype.finally";
 shim();
 
-import {Application, Container, Graphics, interaction, loaders, Rectangle, Sprite, Text, Texture} from "pixi.js";
-// tslint:disable-next-line
+import {Application, Container, interaction, loaders, Rectangle, Sprite, Text, Texture} from "pixi.js";
+
 import * as pixiSound from "pixi-sound"; // comes after pixi for dependence
+import * as AdsManager from "./adsmanager";
+import * as CoinShop from "./coinshop";
 import * as Game from "./game";
 import * as GameOver from "./gameover";
 import * as MSGlobal from "./global";
 import * as Options from "./options";
+import {EAdType} from "./platform";
 import * as Title from "./title";
 
 declare var process: any;
@@ -85,6 +82,7 @@ export enum EGameState {
     EGAMESTATE_TITLE = 0,
     EGAMESTATE_IN_GAME,
     EGAMESTATE_GAME_OVER,
+    EGAMESTATE_COIN_SHOP,
     EGAMESTATE_COUNT,
 }
 let gameState = EGameState.EGAMESTATE_TITLE;
@@ -103,6 +101,11 @@ export function setGameState(g: EGameState) {
         case EGameState.EGAMESTATE_GAME_OVER:
         {
             GameOver.hide();
+        }
+        break;
+        case EGameState.EGAMESTATE_COIN_SHOP:
+        {
+            CoinShop.hide();
         }
         break;
         default:
@@ -125,6 +128,11 @@ export function setGameState(g: EGameState) {
         case EGameState.EGAMESTATE_GAME_OVER:
         {
             GameOver.show();
+        }
+        break;
+        case EGameState.EGAMESTATE_COIN_SHOP:
+        {
+            CoinShop.show();
         }
         break;
         default:
@@ -179,10 +187,17 @@ window.onload = function() {
             MSGlobal.log("calling startGameAsync");
             MSGlobal.PlatformInterface.startGameAsync()
             .then(function() {
+
+                // load ads
+                if (MSGlobal.PlatformInterface.canShowAds(EAdType.EADTYPE_INTERSTITIAL)) {
+                    AdsManager.preloadAds(EAdType.EADTYPE_INTERSTITIAL);
+                }
+
                 // grab save data
                 // Game.resetsaveload();
                 Options.load();
                 Game.load();
+                CoinShop.load();
 
                 // been removed and the user can see the game viewport
                 MSGlobal.log("calling startGame");
@@ -321,6 +336,11 @@ function processinput() {
             GameOver.processInput(g_Clicked, g_MouseDown, lastFrameMouseDown, screenpos.x, screenpos.y);
         }
         break;
+        case EGameState.EGAMESTATE_COIN_SHOP:
+        {
+            CoinShop.processInput(g_Clicked, g_MouseDown, lastFrameMouseDown, screenpos.x, screenpos.y);
+        }
+        break;
         default:
         break;
     }
@@ -344,7 +364,12 @@ function processGame() {
         break;
         case EGameState.EGAMESTATE_GAME_OVER:
         {
-            GameOver.process();
+            GameOver.doProcess();
+        }
+        break;
+        case EGameState.EGAMESTATE_COIN_SHOP:
+        {
+            CoinShop.process();
         }
         break;
         default:
@@ -369,6 +394,11 @@ function render(delta: number) {
         case EGameState.EGAMESTATE_GAME_OVER:
         {
             GameOver.render(delta);
+        }
+        break;
+        case EGameState.EGAMESTATE_COIN_SHOP:
+        {
+            CoinShop.render(delta);
         }
         break;
         default:

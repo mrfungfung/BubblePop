@@ -212,6 +212,10 @@ export class FBPlatform implements IPlatform {
         FBInstant.setSessionData(data);
     }
 
+    public updateAsync(payload: any): Promise<any> {
+        return FBInstant.updateAsync(payload);
+    }
+
     public shareAsync(payload: any): Promise<any> {
         return FBInstant.shareAsync(payload);
     }

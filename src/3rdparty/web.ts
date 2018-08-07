@@ -174,6 +174,12 @@ export class WebPlatform implements IPlatform {
         // do nothing
     }
 
+    public updateAsync(payload: any): Promise<any> {
+        return new Promise(function(resolve: any, reject: any) {
+            resolve();
+        });
+    }
+
     public shareAsync(payload: any): Promise<any> {
         return new Promise(function(resolve: any, reject: any) {
             resolve();

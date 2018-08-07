@@ -24,6 +24,7 @@ export interface IPlatform {
 
     setSessionData(data: any): void;
 
+    updateAsync(payload: any): Promise<any>;
     shareAsync(payload: any): Promise<any>;
     chooseAsync(): Promise<any>;
     canCreateShortcutAsync(): Promise<boolean>;
