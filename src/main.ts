@@ -4,6 +4,9 @@
 
 // sound
 
+// refactor
+// - er make a player profile sigh what an idiot (level + coins)
+
 // bottage: 1 / 3 / 5 day reminder (+ coins ready bonus)
 
 // ideas: amiga zombie clicker, plane challenger, fomo3d

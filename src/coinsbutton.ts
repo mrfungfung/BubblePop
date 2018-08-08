@@ -42,7 +42,9 @@ export function hide() {
 }
 
 export function updateCoinsButton() {
-    coinsButton.m_Text.text = "Coins: " + Game.coins;
+    if (coinsButton) {
+        coinsButton.m_Text.text = "Coins: " + Game.coins;
+    }
 }
 
 // *******************************************************************************************************
