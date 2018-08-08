@@ -1,0 +1,9 @@
+{
+    "instant_games": {
+      "custom_update_templates": {
+        "NEW_SCORE": {
+          "example": "Kun just scored 100 and passed Alissa's highscore!"
+        }
+      }
+    }
+  }

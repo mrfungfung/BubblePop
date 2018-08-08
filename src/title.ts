@@ -22,7 +22,7 @@ export function show() {
     buttonGraphics = new Graphics();
     titleContainer.addChild(buttonGraphics);
 
-    playButton = new Button("Play Bubble Pop! ", null);
+    playButton = new Button("Play Bubble Frenzy! ", null);
     playButton.setSizeToText(main.GUMPH);
     playButton.setCenterPos(vec2.fromValues(
         main.g_HalfScaledRendererWidth,

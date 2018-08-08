@@ -20,12 +20,19 @@ let currentThingIndex = 0;
 class ThingToBuy {
     public name: string = "";
     public costInCoins: number = 0;
-    public bought: boolean = false;
+    public bought: number = 0;
 }
-const thingsToBuy: ThingToBuy[] = [];
+export const thingsToBuy: ThingToBuy[] = [];
 for (let i = 0; i < 10; ++i) {
     const t = new ThingToBuy();
-    t.name = "Thing " + (i + 1);
+    if (i === 0) {
+        t.name = "Extend Time";
+    } else if (i === 1) {
+        t.name = "FREEZE";
+    } else {
+        t.name = "Thing " + (i + 1);
+    }
+
     t.costInCoins = i + 1;
     thingsToBuy.push(t);
 }
@@ -51,7 +58,7 @@ export function load() {
         if (data.thingsBought) {
             // reset
             for (const t of thingsToBuy) {
-                t.bought = false;
+                t.bought = 0;
             }
 
             // load
@@ -59,7 +66,7 @@ export function load() {
                 if (data.thingsBought[key]) {
                     for (const t of thingsToBuy) {
                         if (t.name === key) {
-                            t.bought = true;
+                            t.bought = data.thingsBought[key];
                             break;
                         }
                     }
@@ -73,8 +80,8 @@ export function load() {
 export function save() {
     const thingsBought: any = {};
     for (const t of thingsToBuy) {
-        if (t.bought) {
-            thingsBought[t.name] = true;
+        if (t.bought > 0) {
+            thingsBought[t.name] = t.bought;
         }
     }
     MSGlobal.PlatformInterface.setDataAsync({
@@ -196,38 +203,44 @@ function setNewThing(newIndex: number) {
 
 function updateText(t: ThingToBuy) {
     thingButton.m_Text.text = t.name + "\n" +
-                              t.costInCoins + " Coin" +
+                              "Cost: " + t.costInCoins + " Coin" +
                              (t.costInCoins > 1 ? "s" : "");
 
     buyButtonGfx.clear();
-    if (t.bought) {
-        thingButton.m_Text.text += "\nBOUGHT!";
+    if (t.bought > 0) {
+        thingButton.m_Text.text += "\nBOUGHT! x " + t.bought;
+    }
 
-        buyButton.m_Text.visible = false;
+    if (t.costInCoins <= Game.coins) {
+        buyButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
+            0x00FFD7, 0.95, buyButtonGfx);
+        buyButton.m_Text.text = "Buy!";
     } else {
-        if (t.costInCoins <= Game.coins) {
-            buyButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-                0x00FFD7, 0.95, buyButtonGfx);
-            buyButton.m_Text.text = "Buy!";
-            buyButton.m_Text.visible = true;
-        } else {
-            buyButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-                0x666666, 0.95, buyButtonGfx);
-            buyButton.m_Text.text = "Need More Coins!";
-            buyButton.m_Text.visible = true;
-        }
+        buyButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
+            0x666666, 0.95, buyButtonGfx);
+        buyButton.m_Text.text = "Need More Coins!";
     }
 }
 
 // *******************************************************************************************************
 function tryBuyCurrentItem() {
     const t = thingsToBuy[currentThingIndex];
-    if (!t.bought && t.costInCoins <= Game.coins) {
-        t.bought = true;
-        updateText(t);
+    if (t.costInCoins <= Game.coins) {
+        ++t.bought;
 
         // cost it and save it
         Game.changeCoins(-t.costInCoins);
+        save();
+
+        updateText(t);
+    }
+}
+
+// *********************************************************
+export function useItem(idx: number, use: number) {
+    const t = thingsToBuy[idx];
+    if (t.bought > 0) {
+        t.bought -= use;
         save();
     }
 }

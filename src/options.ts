@@ -143,7 +143,8 @@ export function processInput(clicked: boolean,
         } else if (inviteButton.contains(vec2.fromValues(screenX, screenY))) {
             MSGlobal.PlatformInterface.chooseAsync()
             .then(function() {
-                // do nothing when in new context
+                hide();
+                return true;
             }).catch((error: any) => {
                 MSGlobal.error(error);
             });

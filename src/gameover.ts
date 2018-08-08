@@ -160,7 +160,7 @@ function createEverything() {
             lastbutton = continueWithAdsButton;
         }
 
-        continueWithInviteButton = new Button("Continue! Play New Friend", null);
+        continueWithInviteButton = new Button("Continue! Play With Friends", null);
         continueWithInviteButton.setSizeToText(main.GUMPH);
         continueWithInviteButton.setCenterPos(vec2.fromValues(
             main.g_HalfScaledRendererWidth,
@@ -173,7 +173,7 @@ function createEverything() {
 
         lastbutton = continueWithInviteButton;
     } else {
-        playWithFriendsButton = new Button("Play New Friend", null);
+        playWithFriendsButton = new Button("Play With Friends", null);
         playWithFriendsButton.setSizeToText(main.GUMPH);
         playWithFriendsButton.setCenterPos(vec2.fromValues(
             main.g_HalfScaledRendererWidth,
@@ -223,21 +223,25 @@ function createEverything() {
 }
 
 function createLeaderBoardUI() {
-    loadingText = new MultiStyleText("Loading hiscores...", {
-        default: {
-            fill: "0xFFFFFF",
-            fontSize: "20px",
-            lineJoin: "round",
-            stroke: "0x0",
-            strokeThickness: "4",
-        },
-    });
-    loadingText.anchor.set(0.5);
-    const TOP_Y = restartButton.getBottomY() + main.GUMPH;
-    const ENTRY_ROW_HEIGHT = PROFILE_PIC_DIM + main.SMALL_GUMPH;
-    loadingText.x = main.g_HalfScaledRendererWidth;
-    loadingText.y = TOP_Y + 0.5 * MAX_ENTRIES * ENTRY_ROW_HEIGHT;
-    container.addChild(loadingText);
+    // only do this if im in a context
+    const contextID = MSGlobal.PlatformInterface.getContextID();
+    if (contextID !== null) {
+        loadingText = new MultiStyleText("Loading hiscores...", {
+            default: {
+                fill: "0xFFFFFF",
+                fontSize: "20px",
+                lineJoin: "round",
+                stroke: "0x0",
+                strokeThickness: "4",
+            },
+        });
+        loadingText.anchor.set(0.5);
+        const TOP_Y = restartButton.getBottomY() + main.GUMPH;
+        const ENTRY_ROW_HEIGHT = PROFILE_PIC_DIM + main.SMALL_GUMPH;
+        loadingText.x = main.g_HalfScaledRendererWidth;
+        loadingText.y = TOP_Y + 0.5 * MAX_ENTRIES * ENTRY_ROW_HEIGHT;
+        container.addChild(loadingText);
+    }
 }
 
 function showEverything() {
@@ -371,7 +375,7 @@ export function doProcess() {
         }
     } else {
         if (leaderboardContainer) {
-            container.removeChild(loadingText);
+            if (loadingText) { container.removeChild(loadingText); }
             main.g_PixiApp.stage.addChild(leaderboardContainer);
         }
     }

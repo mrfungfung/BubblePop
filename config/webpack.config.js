@@ -1,7 +1,7 @@
 var path = require('path');
 
 var BUILD_DIR = path.resolve(__dirname, '../dist');
-var APP_DIR = path.resolve(__dirname, './src');
+var APP_DIR = path.resolve(__dirname, '../src');
 var THIRD_PARTY_DIR = path.resolve(__dirname, '../3rdparty');
 
 const configDirs = {

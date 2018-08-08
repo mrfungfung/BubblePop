@@ -1,14 +1,15 @@
 // game
-// - points vs sequence vs number of times? (upgrade your finger power!)
-// - balance 2
-// - make it not look like shit
-// - do custommessage with base64 picture...
+// balance 2
+// make it not look like shit
 
 // sound
 
 // bottage: 1 / 3 / 5 day reminder (+ coins ready bonus)
 
 // ideas: amiga zombie clicker, plane challenger, fomo3d
+
+// future
+// -- gfx explosions
 
 import { shim } from "promise.prototype.finally";
 shim();
@@ -194,7 +195,8 @@ window.onload = function() {
                 }
 
                 // grab save data
-                // Game.resetsaveload();
+                // CoinShop.resetsaveload();
+
                 Options.load();
                 Game.load();
                 CoinShop.load();
@@ -290,8 +292,17 @@ function init() {
 
 // *********************************************************
 function startGame() {
-    Title.show();
     g_Initialised = true;
+
+    MSGlobal.log("context = " + MSGlobal.PlatformInterface.getContextType());
+
+    if (MSGlobal.PlatformInterface.getContextType() !== "SOLO") {
+    // if (1 === 1) {
+        const entryPointData = MSGlobal.PlatformInterface.getEntryPointData();
+        setGameState(EGameState.EGAMESTATE_IN_GAME);
+    } else {
+        Title.show();
+    }
 
     g_PixiApp.ticker.add((delta: number) => {
         mainProcess(delta);

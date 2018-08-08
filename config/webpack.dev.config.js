@@ -8,7 +8,8 @@ function buildConfig(configDirs) {
 
     devConfig.plugins.push(
         new CopyWebpackPlugin([
-            {from: path.join(configDirs.THIRD_PARTY_DIR,"facebook_mock"), to: configDirs.BUILD_DIR}
+            {from: path.join(configDirs.THIRD_PARTY_DIR,"facebook_mock"), to: configDirs.BUILD_DIR},
+            {from: path.join(configDirs.APP_DIR,"fbapp-config.json"), to: configDirs.BUILD_DIR}
         ])
     );
     return devConfig;
