@@ -23,7 +23,7 @@ class ThingToBuy {
     public bought: number = 0;
 }
 export const thingsToBuy: ThingToBuy[] = [];
-for (let i = 0; i < 10; ++i) {
+for (let i = 0; i < 2; ++i) {
     const t = new ThingToBuy();
     if (i === 0) {
         t.name = "Extend Time";
@@ -33,7 +33,7 @@ for (let i = 0; i < 10; ++i) {
         t.name = "Thing " + (i + 1);
     }
 
-    t.costInCoins = i + 1;
+    t.costInCoins = 1;
     thingsToBuy.push(t);
 }
 

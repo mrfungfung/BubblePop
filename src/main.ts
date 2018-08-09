@@ -4,6 +4,12 @@
 
 // sound
 
+// monetization
+// - check number of plays before ads
+// - limit ads to then coins
+// - coins can be bought
+// - watch rewarded for items
+
 // refactor
 // - er make a player profile sigh what an idiot (level + coins)
 

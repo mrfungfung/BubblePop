@@ -40,19 +40,29 @@ let shopButton: Button = null;
 let pauseTimeMillisecs = 0;
 let freezeTimeStartMS = 0;
 
+const TIME_EXPAND_MILLISECS = 0.25 * 1000;
+const TIME_TO_CHILL_MILLISECS = 1.0 * 1000;
+const TIME_TO_FREEZE_SECS = 2;
+
 const COUNT_DOWN_SECS = 1;
-const TIME_PER_GAME_SECS = 10;
+const TIME_PER_GAME_SECS = 5;
 const MIN_RADIUS = 25;
 const MAX_RADIUS = 60;
 const COIN_MAX_RADIUS = 35;
-const MIN_LEVEL_FOR_MOVING = 1;
-const MIN_LEVEL_FOR_TELEPORT = 2;
+
+const MIN_LEVEL_FOR_MOVING = 3;
+const MIN_LEVEL_FOR_POP_INDEX = 4;
+const MIN_LEVEL_FOR_TELEPORT = 7;
+const MIN_LEVEL_FOR_EXTRA_LIFE = 8;
+const MIN_LEVEL_FOR_COIN = 5;
+
 const PERCENT_TO_CONSIDER_FOR_TELEPORT = 0.2;
 const NUM_TELEPORT_INCREASES = 5;
 const PROB_TELEPORT = 0.5;
-const TIME_TO_COIN_SECS = 2 * 60;
-const COIN_PROB = 0.5;
-const MIN_LEVEL_FOR_COIN = 2;
+
+const TIME_TO_COIN_SECS = 10 * 60;
+const COIN_PROB = 0.25;
+
 const LINE_WIDTH = 10;
 let LINE_Y = 0;
 const MAX_LIFE = 4;
@@ -359,12 +369,11 @@ function startTimerForLevel() {
 
 // *******************************************************************************************************
 function initNewBubbles() {
-    numBubblesInLevel = 3 + level;
+    numBubblesInLevel = 1 + level;
     startTimeSecs = Date.now() / 1000;
 
     circles = [];
     currentPopIndex = 0;
-    const MIN_LEVEL_FOR_POP_INDEX = 1;
     let popIndex = 0;
 
     for (let i = 0; i < numBubblesInLevel; ++i) {
@@ -378,7 +387,7 @@ function initNewBubbles() {
         }
 
         if (!c.isCoin) {
-            let currentMaxLife = Math.floor(((level - 3) / 10) * MAX_LIFE);
+            let currentMaxLife = Math.floor(((level - MIN_LEVEL_FOR_EXTRA_LIFE) / 10) * MAX_LIFE);
             currentMaxLife = MSGlobal.G.limit(currentMaxLife, 0, MAX_LIFE);
             c.origLife = MSGlobal.G.randomInt_range(1, currentMaxLife);
             c.life = c.origLife;
@@ -387,24 +396,33 @@ function initNewBubbles() {
         if (!c.isCoin && level >= MIN_LEVEL_FOR_POP_INDEX && Math.random() < 0.5) {
             c.index = popIndex++;
         }
-        c.origRadius = MSGlobal.G.randomInt_range(MIN_RADIUS, c.isCoin ? COIN_MAX_RADIUS : MAX_RADIUS);
-        c.radius = c.origRadius;
-        for (let c_tries = 0; c_tries < 50; ++c_tries) {
+        if (level === 0) {
+            c.origRadius = MAX_RADIUS;
+            c.radius = c.origRadius;
             c.pos = vec2.fromValues(
-                MSGlobal.G.randomInt_range(c.origRadius, main.g_ScaledRendererWidth - c.origRadius),
-                MSGlobal.G.randomInt_range(SAFE_BOTTOM_Y + c.origRadius, SAFE_TOP_Y - c.origRadius),
+                main.g_HalfScaledRendererWidth,
+                main.g_HalfScaledRendererHeight,
             );
+        } else {
+            c.origRadius = MSGlobal.G.randomInt_range(MIN_RADIUS, c.isCoin ? COIN_MAX_RADIUS : MAX_RADIUS);
+            c.radius = c.origRadius;
+            for (let c_tries = 0; c_tries < 50; ++c_tries) {
+                c.pos = vec2.fromValues(
+                    MSGlobal.G.randomInt_range(c.origRadius, main.g_ScaledRendererWidth - c.origRadius),
+                    MSGlobal.G.randomInt_range(SAFE_BOTTOM_Y + c.origRadius, SAFE_TOP_Y - c.origRadius),
+                );
 
-            let valid = true;
-            for (const cc of circles) {
-                const totalR = c.origRadius + cc.origRadius;
-                if (vec2.sqrDist(cc.pos, c.pos) <= totalR * totalR) {
-                    valid = false;
+                let valid = true;
+                for (const cc of circles) {
+                    const totalR = c.origRadius + cc.origRadius;
+                    if (vec2.sqrDist(cc.pos, c.pos) <= totalR * totalR) {
+                        valid = false;
+                        break;
+                    }
+                }
+                if (valid) {
                     break;
                 }
-            }
-            if (valid) {
-                break;
             }
         }
 
@@ -413,16 +431,16 @@ function initNewBubbles() {
             if (c.isCoin) {
                 c.speed = 5.0;
             } else {
-                c.speed = 1.0 + (level - MIN_LEVEL_FOR_MOVING) * 0.5;
+                c.speed = 1.0 + (level - MIN_LEVEL_FOR_MOVING) * 0.2;
             }
             updateTarget(c, null);
         }
 
-        if (c.index >= 0) {
-            c.text = new MultiStyleText(c.index + 1, {
+        if (c.index >= 0 || level === 0) {
+            c.text = new MultiStyleText(level === 0 ? "TAP ME!" : c.index + 1, {
                 default: {
                     fill: "0xFFFFFF",
-                    fontSize: "20px",
+                    fontSize: "25px",
                     lineJoin: "round",
                     stroke: "0x0",
                     strokeThickness: "4",
@@ -467,7 +485,7 @@ function updateTarget(c: Circle, forceTeleport: boolean) {
         if (Math.random() <= considerP &&
             Math.random() <= PROB_TELEPORT) {
                 c.teleport = true;
-                c.teleportStartTimerMillisecs = Date.now();
+                c.teleportStartTimerMillisecs = Date.now() + Math.random() * 2 * 1000;
         }
     }
 }
@@ -475,30 +493,17 @@ function updateTarget(c: Circle, forceTeleport: boolean) {
 // *******************************************************************************************************
 function updateTimer(): boolean {
 
-    let frozen = false;
-    let freezetimeElapsedSecs = 0;
     if (freezeTimeStartMS !== 0) {
-        freezetimeElapsedSecs = (Date.now() - freezeTimeStartMS) / 1000;
-        const TIME_TO_FREEZE_SECS = 2;
-        if (freezetimeElapsedSecs < TIME_TO_FREEZE_SECS) {
-            frozen = true;
-        } else {
+        const freezetimeElapsedSecs = (Date.now() - freezeTimeStartMS) / 1000;
+        if (freezetimeElapsedSecs >= TIME_TO_FREEZE_SECS) {
             freezeTimeStartMS = 0;
-            startTimeSecs += freezetimeElapsedSecs;
         }
+        updateFreezeButton();
     }
 
     // adjust the UI for time left
     const timeElapsedSecs = (Date.now() / 1000 - startTimeSecs);
-    let timeLeftSecs = Math.max(currentTimePerGameSecs - timeElapsedSecs, 0);
-
-    if (frozen) {
-        timeLeftSecs += freezetimeElapsedSecs;
-        timerButton.m_Text.text = "FREEZE";
-    } else {
-        timerButton.m_Text.text = "Time: " + (Math.floor(timeLeftSecs) + 1);
-    }
-
+    const timeLeftSecs = Math.max(currentTimePerGameSecs - timeElapsedSecs, 0);
     const offset = getRumbleOffset();
 
     timerLineGfx.clear();
@@ -705,11 +710,10 @@ export function processInGame() {
                 gameOver();
             }
         } else {
+            const isFrozen = (freezeTimeStartMS !== 0);
             for (const c of circles) {
                 if (c.target) {
                     if (c.teleport) {
-                        const TIME_EXPAND_MILLISECS = 0.25 * 1000;
-                        const TIME_TO_CHILL_MILLISECS = 1.0 * 1000;
                         const timeElapsedMillesecs = Date.now() - c.teleportStartTimerMillisecs;
                         if (timeElapsedMillesecs < TIME_TO_CHILL_MILLISECS) {
                             // do nothing
@@ -727,16 +731,18 @@ export function processInGame() {
                             updateTarget(c, true);
                         }
                     } else {
-                        if (vec2.sqrDist(c.pos, c.target) <= c.speed * c.speed) {
-                            updateTarget(c, false);
-                        }
-                        const dir: vec2 = vec2.fromValues(0, 0);
-                        vec2.sub(dir, c.target, c.pos);
-                        if (vec2.squaredLength(dir) > 0.001) {
-                            vec2.normalize(dir, dir);
-                        }
+                        if (!isFrozen) {
+                            if (vec2.sqrDist(c.pos, c.target) <= c.speed * c.speed) {
+                                updateTarget(c, false);
+                            }
+                            const dir: vec2 = vec2.fromValues(0, 0);
+                            vec2.sub(dir, c.target, c.pos);
+                            if (vec2.squaredLength(dir) > 0.001) {
+                                vec2.normalize(dir, dir);
+                            }
 
-                        vec2.scaleAndAdd(c.pos, c.pos, dir, c.speed);
+                            vec2.scaleAndAdd(c.pos, c.pos, dir, c.speed);
+                        }
                     }
 
                     // update the text
@@ -756,7 +762,7 @@ function updateRenderCircles() {
     circleGraphics.clear();
 
     for (const c of circles) {
-        if (c.index === currentPopIndex) {
+        if (c.index === currentPopIndex || level === 0) {
             c.text.tint = 0xffffff;
         } else if (c.text) {
             c.text.tint = 0x777777;
@@ -976,8 +982,9 @@ function freeze() {
 
 // *******************************************************************************************************
 function updateFreezeButton() {
+    const isFrozen = (freezeTimeStartMS !== 0);
     const thing = CoinShop.thingsToBuy[1];
-    if (thing.bought > 0) {
+    if (thing.bought > 0 || isFrozen) {
         if (!powerUpButton) {
             powerUpButtonGfx = new Graphics();
 
@@ -997,10 +1004,16 @@ function updateFreezeButton() {
                 gameContainer.addChild(powerUpButtonGfx);
                 gameContainer.addChild(powerUpButton.m_Text);
             }
+        }
+
+        if (isFrozen) {
+            powerUpButton.m_Text.text = "FREEZE!";
+            powerUpButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
+                0xD7D7D7, 0.95, powerUpButtonGfx);
         } else {
-            if (freezeTimeStartMS === 0) {
-                powerUpButton.m_Text.text = "FREEZE: " + thing.bought;
-            }
+            powerUpButton.m_Text.text = "FREEZE: " + thing.bought;
+            powerUpButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
+                0x0000D7, 0.95, powerUpButtonGfx);
         }
     } else {
         if (powerUpButton) {
