@@ -1,17 +1,18 @@
 // game
-// balance 2
 // make it not look like shit
+// ANALYTICS
 
 // sound
 
 // monetization
+// - offer time extend on dead
 // - check number of plays before ads
 // - limit ads to then coins
 // - coins can be bought
 // - watch rewarded for items
 
 // refactor
-// - er make a player profile sigh what an idiot (level + coins)
+// - er make a player profile sigh what an idiot (level + coins, shop items)
 
 // bottage: 1 / 3 / 5 day reminder (+ coins ready bonus)
 
@@ -174,6 +175,21 @@ function onDeviceReady() {
 // *********************************************************
 // top level window events to bootstap everything
 // *********************************************************
+export let absolute = 0;
+export let alpha = 0;
+export let beta = 0;
+export let gamma = 0;
+
+window.addEventListener("deviceorientation", handleOrientation, true);
+function handleOrientation(event: any) {
+    absolute = event.absolute;
+    alpha    = event.alpha;
+    beta     = event.beta;
+    gamma    = event.gamma;
+
+    MSGlobal.log(absolute + " " + alpha + " " + beta + " " + gamma);
+  }
+
 window.addEventListener("resize", onResize);
 function onResize() {
     MSGlobal.log("onResize()");
@@ -194,25 +210,45 @@ window.onload = function() {
         .then(function() {
             init();
 
-            MSGlobal.log("calling startGameAsync");
-            MSGlobal.PlatformInterface.startGameAsync()
-            .then(function() {
+            // preload some resources
+            const initial_resource_paths: any = {};
+            initial_resource_paths.BG = MSGlobal.ASSET_DIR["./bg.png"];
+            initial_resource_paths.MG = MSGlobal.ASSET_DIR["./mg.png"];
+            initial_resource_paths.FG = MSGlobal.ASSET_DIR["./fg.png"];
 
-                // load ads
-                if (MSGlobal.PlatformInterface.canShowAds(EAdType.EADTYPE_INTERSTITIAL)) {
-                    AdsManager.preloadAds(EAdType.EADTYPE_INTERSTITIAL);
+            const loader = new loaders.Loader();
+            for (const key in initial_resource_paths) {
+                if (initial_resource_paths.hasOwnProperty(key)) {
+                    const resource_path = initial_resource_paths[key];
+                    loader.add(key, resource_path); // key is path
                 }
+            }
+            loader.onProgress.add((l: any) => {
+                // g_LoadingText.text = "Loading ... " + Math.floor(l.progress) + "%";
+                MSGlobal.PlatformInterface.setLoadingProgress(l.progress);
+            }); // called once per loaded/errored file
 
-                // grab save data
-                // CoinShop.resetsaveload();
+            loader.load((ldr: any, resources: any) => {
+                MSGlobal.log("calling startGameAsync");
+                MSGlobal.PlatformInterface.startGameAsync()
+                .then(function() {
 
-                Options.load();
-                Game.load();
-                CoinShop.load();
+                    // load ads
+                    if (MSGlobal.PlatformInterface.canShowAds(EAdType.EADTYPE_INTERSTITIAL)) {
+                        AdsManager.preloadAds(EAdType.EADTYPE_INTERSTITIAL);
+                    }
 
-                // been removed and the user can see the game viewport
-                MSGlobal.log("calling startGame");
-                startGame();
+                    // grab save data
+                    // CoinShop.resetsaveload();
+
+                    Options.load();
+                    Game.load();
+                    CoinShop.load();
+
+                    // been removed and the user can see the game viewport
+                    MSGlobal.log("calling startGame");
+                    startGame();
+                });
             });
         });
     }

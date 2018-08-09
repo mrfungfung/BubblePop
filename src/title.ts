@@ -1,9 +1,10 @@
 import {vec2} from "gl-matrix";
-import {Container, Graphics} from "pixi.js";
+import {Container, Graphics, Sprite} from "pixi.js";
 import { Button } from "./button";
 import * as CoinsButton from "./coinsbutton";
 import * as CoinShop from "./coinshop";
 import * as Game from "./game";
+import * as MSGlobal from "./global";
 import * as main from "./main";
 import * as Options from "./options";
 
@@ -14,10 +15,23 @@ let playButton: Button = null;
 let shopButton: Button = null;
 let optionsButton: Button = null;
 
+// spritesss
+let bgSprite: Sprite = null;
+let mgSprite: Sprite = null;
+let fgSprite: Sprite = null;
+
 // *********************************************************
 export function show() {
     titleContainer = new Container();
     main.g_PixiApp.stage.addChild(titleContainer);
+
+    bgSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./bg.png"]);
+    mgSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./mg.png"]);
+    fgSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./fg.png"]);
+
+    titleContainer.addChild(bgSprite);
+    titleContainer.addChild(mgSprite);
+    titleContainer.addChild(fgSprite);
 
     buttonGraphics = new Graphics();
     titleContainer.addChild(buttonGraphics);
@@ -64,7 +78,17 @@ export function hide() {
 
 // *******************************************************************************************************
 export function process() {
-    // do something
+    const MAX_DX = 200;
+    const dx = main.gamma / 90.0 * MAX_DX;
+    bgSprite.x = dx / 5;
+    mgSprite.x = dx / 2;
+    fgSprite.x = dx;
+
+    const MAX_DY = 200;
+    const dy = main.beta / 180.0 * MAX_DY;
+    bgSprite.y = dy / 5;
+    mgSprite.y = dy / 2;
+    fgSprite.y = dy;
 }
 
 // *******************************************************************************************************
