@@ -1,8 +1,9 @@
 // game
 // make it not look like shit
-// ANALYTICS
 
 // sound
+
+// bottage: 1 / 3 / 5 day reminder (+ coins ready bonus)
 
 // monetization
 // - offer time extend on dead
@@ -14,11 +15,9 @@
 // refactor
 // - er make a player profile sigh what an idiot (level + coins, shop items)
 
-// bottage: 1 / 3 / 5 day reminder (+ coins ready bonus)
-
 // ideas: amiga zombie clicker, plane challenger, fomo3d
 
-// future
+// future iap
 // -- gfx explosions
 
 import { shim } from "promise.prototype.finally";
@@ -229,6 +228,8 @@ window.onload = function() {
             }); // called once per loaded/errored file
 
             loader.load((ldr: any, resources: any) => {
+                MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("AssetsLoaded", null, null);
+
                 MSGlobal.log("calling startGameAsync");
                 MSGlobal.PlatformInterface.startGameAsync()
                 .then(function() {

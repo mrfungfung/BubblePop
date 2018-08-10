@@ -1,5 +1,5 @@
 import {vec2} from "gl-matrix";
-import {Container, Graphics} from "pixi.js";
+import {Container, Graphics, Sprite} from "pixi.js";
 import { Button } from "./button";
 import * as CoinsButton from "./coinsbutton";
 import * as CoinShop from "./coinshop";
@@ -11,6 +11,13 @@ import * as Options from "./options";
 // tslint:disable:no-var-requires
 const MultiStyleText = require("pixi-multistyle-text");
 // tslint:enable:no-var-requires
+
+// spritesss
+let bgContainer: Container = null;
+const MAX_DX = 200;
+let bgSprite: Sprite = null;
+let mgSprite: Sprite = null;
+let fgSprite: Sprite = null;
 
 // *********************************************************
 // modal confirm
@@ -60,7 +67,7 @@ const PERCENT_TO_CONSIDER_FOR_TELEPORT = 0.2;
 const NUM_TELEPORT_INCREASES = 5;
 const PROB_TELEPORT = 0.5;
 
-const TIME_TO_COIN_SECS = 10 * 60;
+export const TIME_TO_COIN_SECS = 10 * 60;
 const COIN_PROB = 0.25;
 
 const LINE_WIDTH = 10;
@@ -77,12 +84,11 @@ export let coins: number = 0;
 let level = -1;
 let numBubblesInLevel = 0;
 let currentPopIndex = 0;
-let lastCoinAppearTimeSecs: number = 0;
+export let lastCoinAppearTimeSecs: number = 0;
 
 let buttonGraphics: Graphics = null;
 let timerButton: Button = null;
 let scoreButton: Button = null;
-let coinsButton: Button = null;
 
 let timerLineGfx: Graphics = null;
 
@@ -204,11 +210,26 @@ export function continueGame() {
     --level;
 }
 export function show() {
+    bgContainer = new Container();
     gameContainer = new Container();
     countdownContainer = new Container();
     topUIContainer = new Container();
+    main.g_PixiApp.stage.addChild(bgContainer);
     main.g_PixiApp.stage.addChild(countdownContainer);
     main.g_PixiApp.stage.addChild(topUIContainer);
+    CoinsButton.show();
+
+    bgSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./bg.png"]);
+    mgSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./mg.png"]);
+    fgSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./fg.png"]);
+    fgSprite.anchor.set(0.5);
+    fgSprite.x = main.g_HalfScaledRendererWidth;
+    fgSprite.y = main.g_HalfScaledRendererHeight;
+    fgSprite.width = bgSprite.width + MAX_DX;
+
+    bgContainer.addChild(bgSprite);
+    bgContainer.addChild(mgSprite);
+    bgContainer.addChild(fgSprite);
 
     // countdown
     countdownTimerGraphics = new Graphics();
@@ -275,28 +296,6 @@ export function show() {
         0x7a00cf, 0.95, buttonGraphics);
     topUIContainer.addChild(scoreButton.m_Text);
 
-    coinsButton = new Button("", {
-        default: {
-            fill: "0xFFFFFF",
-            fontSize: "12px",
-            lineJoin: "round",
-            stroke: "0x0",
-            strokeThickness: "4",
-        },
-    });
-    updateTimeToCoin();
-    coinsButton.setSizeToText(main.GUMPH);
-    coinsButton.setSize(vec2.fromValues(
-        100, coinsButton.m_Size[1],
-    ));
-    coinsButton.setCenterPos(vec2.fromValues(
-        main.g_ScaledRendererWidth - main.SMALL_GUMPH - 0.5 * coinsButton.m_Size[0],
-        main.SMALL_GUMPH + 0.5 * coinsButton.m_Size[1],
-    ));
-    coinsButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0xFFD700, 0.95, buttonGraphics);
-    topUIContainer.addChild(coinsButton.m_Text);
-
     // actual in game UI
     const ingameGfx = new Graphics();
     gameContainer.addChild(ingameGfx);
@@ -345,6 +344,9 @@ export function show() {
 
 // *******************************************************************************************************
 export function hide() {
+    CoinsButton.hide();
+
+    main.g_PixiApp.stage.removeChild(bgContainer);
     main.g_PixiApp.stage.removeChild(gameContainer);
     main.g_PixiApp.stage.removeChild(countdownContainer);
     main.g_PixiApp.stage.removeChild(topUIContainer);
@@ -504,6 +506,7 @@ function updateTimer(): boolean {
     // adjust the UI for time left
     const timeElapsedSecs = (Date.now() / 1000 - startTimeSecs);
     const timeLeftSecs = Math.max(currentTimePerGameSecs - timeElapsedSecs, 0);
+    timerButton.m_Text.text = "Time: " + Math.ceil(timeLeftSecs);
     const offset = getRumbleOffset();
 
     timerLineGfx.clear();
@@ -514,20 +517,6 @@ function updateTimer(): boolean {
     timerLineGfx.endFill();
 
     return (timeLeftSecs === 0);
-}
-
-// *******************************************************************************************************
-function updateTimeToCoin() {
-    const timeElapsedSinceLastCoinSecs = (Date.now() - lastCoinAppearTimeSecs) / 1000;
-    const timeToCoinLeftSecs = Math.max(0, TIME_TO_COIN_SECS - timeElapsedSinceLastCoinSecs);
-    let timeToCoinLeftSecsString = "";
-    if (timeToCoinLeftSecs === 0) {
-        timeToCoinLeftSecsString = "Coin will come";
-    } else {
-        timeToCoinLeftSecsString = MSGlobal.secondsToString(timeToCoinLeftSecs, true, 2);
-    }
-
-    coinsButton.m_Text.text = "Coins: " + coins + "\n" + timeToCoinLeftSecsString;
 }
 
 // *******************************************************************************************************
@@ -554,7 +543,13 @@ function transitionToInGame() {
 }
 
 // *******************************************************************************************************
-function transitionToCountdown() {
+function transitionToCountdown() { // advance a level
+    MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("LevelComplete",
+        null,
+        {
+            Level: level,
+        });
+
     main.g_PixiApp.stage.removeChild(gameContainer);
     main.g_PixiApp.stage.addChild(countdownContainer);
 
@@ -617,6 +612,9 @@ function gameOver() {
 
 // *******************************************************************************************************
 export function process() {
+    CoinsButton.updateCoinsButton();
+    processBG();
+
     if (Options.isOnShow()) {
         Options.process();
     } else if (CoinShop.isOnShow()) {
@@ -626,6 +624,19 @@ export function process() {
     } else {
         processInGame();
     }
+}
+
+function processBG() {
+    const dx = main.gamma / 90.0 * MAX_DX;
+    bgSprite.x = dx / 5;
+    mgSprite.x = dx / 2;
+    fgSprite.x = main.g_HalfScaledRendererWidth + dx;
+
+    const MAX_DY = 200;
+    const dy = main.beta / 180.0 * MAX_DY;
+    bgSprite.y = dy / 5;
+    mgSprite.y = dy / 2;
+    fgSprite.y = main.g_HalfScaledRendererHeight + dy;
 }
 
 // *******************************************************************************************************
@@ -690,9 +701,6 @@ function hideConfirmModal() {
 
 // *******************************************************************************************************
 export function processInGame() {
-    // always update coin
-    updateTimeToCoin();
-
     if (countdownTimerStartMillisecs > 0) { // do timer countdown
         const timeElapsedMillisecs = Date.now() - countdownTimerStartMillisecs;
         const timeLeftSecs = Math.max(0, COUNT_DOWN_SECS - timeElapsedMillisecs / 1000);
@@ -818,7 +826,7 @@ function popBubble(c: Circle) {
     if (c.index >= 0) { currentPopIndex++; }
     if (c.isCoin) {
         changeCoins(1);
-        coinsButton.m_Text.text = "Coins: " + coins;
+        CoinsButton.updateCoinsButton();
     } else {
         score++;
         scoreButton.m_Text.text = score + " Hi: " + hiscore;
@@ -878,6 +886,8 @@ export function processInput(clicked: boolean,
             topUIContainer.visible = true;
             countdownContainer.visible = true;
             gameContainer.visible = true;
+
+            CoinsButton.show();
         }
     }  else if (confirmModalContainer) {
         if (clicked) {
@@ -912,6 +922,7 @@ export function processInputInGame(clicked: boolean,
             Options.show();
         } else if (clicked && shopButton.contains(vec2.fromValues(screenX, screenY))) {
             pauseTimeMillisecs = Date.now();
+            MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("shopButton", null, { from: "CountDown" });
             CoinShop.show();
 
             topUIContainer.visible = false;
@@ -923,6 +934,7 @@ export function processInputInGame(clicked: boolean,
         Options.show();
     } else if (clicked && shopButton.contains(vec2.fromValues(screenX, screenY))) {
         pauseTimeMillisecs = Date.now();
+        MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("shopButton", null, { from: "InGame" });
         CoinShop.show();
 
         topUIContainer.visible = false;

@@ -358,6 +358,8 @@ function createEntries(leaderboard: ILeaderboard, count: number, offset: number)
 
 // *******************************************************************************************************
 export function doProcess() {
+    CoinsButton.updateCoinsButton();
+
     if (Options.isOnShow()) {
         Options.process();
     } else if (gameOverPopUpContainer) {
@@ -450,30 +452,45 @@ export function processInput(clicked: boolean,
     } else if (!gameOverPopUpContainer) {
         if (clicked) {
             if (continueWithAdsButton && continueWithAdsButton.contains(vec2.fromValues(screenX, screenY))) {
+                MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("continueWithAdsButton", null, null);
                 tryShowInterstitial("continue", transitionToContinueGame, transitionToContinueGame);
             } else if (continueWithInviteButton &&
                         continueWithInviteButton.contains(vec2.fromValues(screenX, screenY))) {
+                MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("continueWithInviteButton", null,
+                                                                        { state: "Clicked" });
                 MSGlobal.PlatformInterface.chooseAsync()
                 .then(function() {
+                    MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("continueWithInviteButton", null,
+                                                                        { state: "Success" });
                     transitionToContinueGame();
                 }).catch((error: any) => {
+                    MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("continueWithInviteButton", null,
+                                                                        { state: "Failed" });
                     MSGlobal.error(error);
                 });
             } else if (optionsButton.contains(vec2.fromValues(screenX, screenY))) {
                 Options.show();
             } else if (shopButton.contains(vec2.fromValues(screenX, screenY))) {
+                MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("shopButton", null, { from: "GameOver" });
                 container.visible = false;
                 leaderboardContainer.visible = false;
                 CoinsButton.hide();
                 CoinShop.show();
             } else if (restartButton.contains(vec2.fromValues(screenX, screenY))) {
+                MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("restart", null, null);
                 resetGame();
             } else if (playWithFriendsButton &&
                         playWithFriendsButton.contains(vec2.fromValues(screenX, screenY))) {
+                MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("playWithFriendsButton", null,
+                                                                        { state: "Clicked" });
                 MSGlobal.PlatformInterface.chooseAsync()
                 .then(function() {
+                    MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("playWithFriendsButton", null,
+                                                                        { state: "Success" });
                     resetGame();
                 }).catch((error: any) => {
+                    MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("playWithFriendsButton", null,
+                                                                        { state: "Failed" });
                     MSGlobal.error(error);
                 });
             }

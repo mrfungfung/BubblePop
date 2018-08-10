@@ -191,7 +191,7 @@ export function hide() {
 
 // *******************************************************************************************************
 export function process() {
-    // do something
+    CoinsButton.updateCoinsButton();
 }
 
 // *******************************************************************************************************
@@ -229,6 +229,12 @@ function tryBuyCurrentItem() {
         ++t.bought;
 
         // cost it and save it
+        MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("BoughtSomething",
+            null,
+            {
+                CoinsSpent: t.costInCoins,
+                ThingIndex: currentThingIndex,
+            });
         Game.changeCoins(-t.costInCoins);
         save();
 

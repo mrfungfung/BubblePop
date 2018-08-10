@@ -16,6 +16,7 @@ let shopButton: Button = null;
 let optionsButton: Button = null;
 
 // spritesss
+const MAX_DX = 200;
 let bgSprite: Sprite = null;
 let mgSprite: Sprite = null;
 let fgSprite: Sprite = null;
@@ -28,6 +29,10 @@ export function show() {
     bgSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./bg.png"]);
     mgSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./mg.png"]);
     fgSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./fg.png"]);
+    fgSprite.anchor.set(0.5);
+    fgSprite.x = main.g_HalfScaledRendererWidth;
+    fgSprite.y = main.g_HalfScaledRendererHeight;
+    fgSprite.width = bgSprite.width + MAX_DX;
 
     titleContainer.addChild(bgSprite);
     titleContainer.addChild(mgSprite);
@@ -78,17 +83,18 @@ export function hide() {
 
 // *******************************************************************************************************
 export function process() {
-    const MAX_DX = 200;
     const dx = main.gamma / 90.0 * MAX_DX;
     bgSprite.x = dx / 5;
     mgSprite.x = dx / 2;
-    fgSprite.x = dx;
+    fgSprite.x = main.g_HalfScaledRendererWidth + dx;
 
     const MAX_DY = 200;
     const dy = main.beta / 180.0 * MAX_DY;
     bgSprite.y = dy / 5;
     mgSprite.y = dy / 2;
-    fgSprite.y = dy;
+    fgSprite.y = main.g_HalfScaledRendererHeight + dy;
+
+    CoinsButton.updateCoinsButton();
 }
 
 // *******************************************************************************************************
@@ -117,6 +123,7 @@ export function processInput(clicked: boolean,
                 CoinsButton.hide();
                 Options.show();
             } else if (shopButton.contains(vec2.fromValues(screenX, screenY))) {
+                MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("shopButton", null, { from: "Title" });
                 titleContainer.visible = false;
                 CoinsButton.hide();
                 CoinShop.show();

@@ -2,6 +2,7 @@ import {vec2} from "gl-matrix";
 import {Container, Graphics} from "pixi.js";
 import { Button } from "./button";
 import * as Game from "./game";
+import * as MSGlobal from "./global";
 import * as main from "./main";
 
 // *********************************************************
@@ -21,7 +22,15 @@ export function show() {
         buttonGraphics = new Graphics();
         container.addChild(buttonGraphics);
 
-        coinsButton = new Button("Coins: " + Game.coins, null);
+        coinsButton = new Button("Coins: " + Game.coins, {
+            default: {
+                fill: "0xFFFFFF",
+                fontSize: "12px",
+                lineJoin: "round",
+                stroke: "0x0",
+                strokeThickness: "4",
+            },
+        });
         coinsButton.setSizeToText(main.GUMPH);
         coinsButton.setSize(vec2.fromValues(
             100, coinsButton.m_Size[1],
@@ -43,7 +52,16 @@ export function hide() {
 
 export function updateCoinsButton() {
     if (coinsButton) {
-        coinsButton.m_Text.text = "Coins: " + Game.coins;
+        const timeElapsedSinceLastCoinSecs = (Date.now() - Game.lastCoinAppearTimeSecs) / 1000;
+        const timeToCoinLeftSecs = Math.max(0, Game.TIME_TO_COIN_SECS - timeElapsedSinceLastCoinSecs);
+        let timeToCoinLeftSecsString = "";
+        if (timeToCoinLeftSecs === 0) {
+            timeToCoinLeftSecsString = "Coin will come";
+        } else {
+            timeToCoinLeftSecsString = MSGlobal.secondsToString(timeToCoinLeftSecs, true, 2);
+        }
+
+        coinsButton.m_Text.text = "Coins: " + Game.coins + "\n" + timeToCoinLeftSecsString;
     }
 }
 
