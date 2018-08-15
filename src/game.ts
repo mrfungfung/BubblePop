@@ -67,7 +67,7 @@ const PERCENT_TO_CONSIDER_FOR_TELEPORT = 0.2;
 const NUM_TELEPORT_INCREASES = 5;
 const PROB_TELEPORT = 0.5;
 
-export const TIME_TO_COIN_SECS = 10 * 60;
+export const TIME_TO_COIN_SECS = 1 * 60 * 60;
 const COIN_PROB = 0.25;
 
 const LINE_WIDTH = 10;
@@ -575,36 +575,96 @@ function transitionToCountdown() { // advance a level
 }
 
 // *******************************************************************************************************
-function gameOver() {
-    let isHiScore = false;
-    if (score > hiscore) {
-        hiscore = score;
-        isHiScore = true;
-    }
-    const facebookName = MSGlobal.PlatformInterface.getPlayerName();
+function generateUpdateAsyncMessage(bubbleText: string) {
+    const now = new Date();
+    const numhours = now.getHours();
+    const numminutes = now.getMinutes();
+    const numseconds = now.getSeconds();
+
+    const seconds = (numhours * 60 * 60) + (numminutes * 60) + numseconds;
+    const secondsInDay = 24 * 60 * 60;
+    const remainingSeconds = secondsInDay - seconds;
+    bubbleText += "\n";
+    bubbleText += "Time left to become today's TOP Bubble FRENZY: " +
+                    MSGlobal.secondsToString(remainingSeconds, false, 3);
+
+    MSGlobal.log(bubbleText);
+
     MSGlobal.PlatformInterface.updateAsync({
         action: "CUSTOM",
         cta: "Play",
+        // data: {},
         // tslint:disable-next-line
         image: "data:image/jpeg;base64,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",
         notification: "NO_PUSH",
         strategy: "LAST",
         template: "NEW_SCORE",
         text: {
-          default: isHiScore ?
-                    "Beat " + facebookName + "'s Bubble FRENZY Hi Score of " + score + "!" :
-                    "Beat " + facebookName + "'s Bubble FRENZY score of " + score + "!",
+          default: bubbleText,
         //   localizations: {
         //     en_US: 'Edgar just played BASH for 9 points!',
         //     pt_BR: 'Edgar jogou BASH por 9 pontos!',
         //   }
         },
-        // data: { myReplayData: '...' },
       }).then(function() {
         MSGlobal.log("Message was sent successfully");
       }).catch(function(err: any) {
         MSGlobal.error(err);
       });
+}
+function gameOver() {
+    let isHiScore = false;
+    if (score > hiscore) {
+        hiscore = score;
+        isHiScore = true;
+    }
+
+    // on game over, if i BEAT the hi score, record it (ME beat OLD with XYZ)
+    // on game over, if i DIDNT BEAT the hi score, record it (ME FAIL beat OLD with XYZ)
+    // if same - record it
+    // record "Time left to be BUBLE KING OF THE DAY"
+
+    // on server, cron job - check LAST time from PREVIOUS day - inform context HEY HEY BUBBLE KING
+    // try and save off data to backed
+
+    // save this hi score if possible
+    // try and grab the hiscore and name of this context
+    const facebookName = MSGlobal.PlatformInterface.getPlayerName();
+    const contextID = MSGlobal.PlatformInterface.getContextID();
+    const playerID = MSGlobal.PlatformInterface.getPlayerID();
+    if (contextID) {
+        MSGlobal.PlatformInterface.postCurrentContextHiScore(
+            contextID,
+            score,
+            playerID)
+        .then(function(response) {
+            let bubbleText = "";
+            if (response.data.hiscore_playerid === playerID.toString()) {
+                bubbleText = "Still the best! Beat " + facebookName + "'s Bubble FRENZY score of "
+                            + response.data.hiscore + "!";
+            } else if (response.data.facebookname) {
+                if (score > parseInt(response.data.hiscore, 10)) {
+                    bubbleText = facebookName + " beat " + response.data.facebookname +
+                                " with a NEW SCORE of " + score + "!";
+                } else {
+                    bubbleText = response.data.facebookname +
+                                " is still the best at Bubble FRENZY with a score of " + response.data.hiscore + "!";
+                }
+            } else {
+                bubbleText = "Beat " + facebookName + "'s Bubble FRENZY score of " + score + "!";
+            }
+            generateUpdateAsyncMessage(bubbleText);
+        }).catch(function(error) {
+            MSGlobal.log(error);
+
+            const bubbleText = "Beat " + facebookName + "'s Bubble FRENZY score of " + score + "!";
+            generateUpdateAsyncMessage(bubbleText);
+        });
+    } else {
+        const bubbleText = "Beat " + facebookName + "'s Bubble FRENZY score of " + score + "!";
+        generateUpdateAsyncMessage(bubbleText);
+    }
+
     save();
     GameOver.initialise(score, isHiScore, level);
     main.setGameState(main.EGameState.EGAMESTATE_GAME_OVER);
@@ -766,51 +826,150 @@ export function processInGame() {
 }
 
 // *******************************************************************************************************
-function updateRenderCircles() {
-    circleGraphics.clear();
-
-    for (const c of circles) {
-        if (c.index === currentPopIndex || level === 0) {
-            c.text.tint = 0xffffff;
-        } else if (c.text) {
-            c.text.tint = 0x777777;
+function renderOutline(c: Circle) {
+    circleGraphics.lineStyle(5.0, 0x00ffff);
+    if (!c.isCoin) {
+        let offset = vec2.fromValues(0, 0);
+        if (c.index in rumbleCircle) {
+            offset = getRumbleOffset();
         }
+        const cp = vec2.fromValues(offset[0] + c.pos[0],
+                                    offset[1] + c.pos[1]);
 
-        circleGraphics.beginFill(c.isCoin ? 0xFFD700 : 0xbb0071);
-        circleGraphics.lineStyle(0, 0);
-        circleGraphics.drawCircle(c.pos[0], c.pos[1], c.radius);
-        circleGraphics.endFill();
-
-        circleGraphics.lineStyle(5.0, 0x00ffff);
-        if (!c.isCoin) {
-            let offset = vec2.fromValues(0, 0);
-            if (c.index in rumbleCircle) {
-                offset = getRumbleOffset();
-            }
-            const cp = vec2.fromValues(offset[0] + c.pos[0],
-                                       offset[1] + c.pos[1]);
-
-            const parts = c.origLife;
-            if (parts === 1) {
-                circleGraphics.drawCircle(cp[0], cp[1], c.radius);
-            } else {
-                const gapRadians = 10.0 / 180.0 * Math.PI;
-                const perPartRadians = MSGlobal.G.TWO_PI / parts;
-                for (let c_part = 0; c_part < parts; ++c_part) {
-                    if (c_part < c.life) {
-                        const startTheta = c_part * perPartRadians;
-                        const endTheta = (c_part + 1) * perPartRadians - gapRadians;
-                        const startPos = vec2.fromValues(
-                            cp[0] + c.radius * Math.cos(startTheta),
-                            cp[1] + c.radius * Math.sin(startTheta),
-                        );
-                        circleGraphics.moveTo(startPos[0], startPos[1]);
-                        circleGraphics.arc(cp[0], cp[1], c.radius, startTheta, endTheta);
-                    }
+        const parts = c.origLife;
+        if (parts === 1) {
+            circleGraphics.drawCircle(cp[0], cp[1], c.radius);
+        } else {
+            const gapRadians = 10.0 / 180.0 * Math.PI;
+            const perPartRadians = MSGlobal.G.TWO_PI / parts;
+            for (let c_part = 0; c_part < parts; ++c_part) {
+                if (c_part < c.life) {
+                    const startTheta = c_part * perPartRadians;
+                    const endTheta = (c_part + 1) * perPartRadians - gapRadians;
+                    const startPos = vec2.fromValues(
+                        cp[0] + c.radius * Math.cos(startTheta),
+                        cp[1] + c.radius * Math.sin(startTheta),
+                    );
+                    circleGraphics.moveTo(startPos[0], startPos[1]);
+                    circleGraphics.arc(cp[0], cp[1], c.radius, startTheta, endTheta);
                 }
             }
         }
     }
+}
+function updateRenderCircles() {
+    circleGraphics.clear();
+
+    // we render things in order
+    for (const c of circles) {
+        if (!c.isCoin && c.index !== -1 && c.index !== currentPopIndex) { // not a coin, indexed, not chosen
+            circleGraphics.beginFill(0x21b166);
+            circleGraphics.lineStyle(0, 0);
+            circleGraphics.drawCircle(c.pos[0], c.pos[1], c.radius);
+            circleGraphics.endFill();
+
+            circleGraphics.lineStyle(5.0, 0x888800);
+            const cos45 = Math.cos(0.25 * Math.PI);
+            const sin45 = Math.sin(0.25 * Math.PI);
+            circleGraphics.moveTo(c.radius * cos45 + c.pos[0],
+                                  c.radius * sin45 + c.pos[1]);
+            circleGraphics.lineTo(-c.radius * cos45 + c.pos[0],
+                                  -c.radius * sin45 + c.pos[1]);
+            circleGraphics.moveTo(-c.radius * cos45 + c.pos[0],
+                                  c.radius * sin45 + c.pos[1]);
+            circleGraphics.lineTo(c.radius * cos45 + c.pos[0],
+                                  -c.radius * sin45 + c.pos[1]);
+
+            renderOutline(c);
+            c.text.visible = false;
+        }
+    }
+    for (const c of circles) {
+        if (!c.isCoin && c.index !== -1 && c.index === currentPopIndex) { // not a coin, indexed, chosen
+            circleGraphics.beginFill(0x88ff88);
+            circleGraphics.lineStyle(0, 0);
+            circleGraphics.drawCircle(c.pos[0], c.pos[1], c.radius);
+            circleGraphics.endFill();
+
+            // circleGraphics.lineStyle(5.0, 0xffff00);
+            // const cos45 = Math.cos(0.25 * Math.PI);
+            // const sin45 = Math.sin(0.25 * Math.PI);
+            // circleGraphics.moveTo(0.5 * c.radius * cos45 + c.pos[0],
+            //                       -c.radius * cos45 + c.pos[1]);
+            // circleGraphics.lineTo(0.5 * c.radius * cos45 + c.pos[0],
+            //                       -c.radius * cos45 + c.pos[1] + 0.5 * c.radius);
+            // circleGraphics.moveTo(-0.5 * c.radius * cos45 + c.pos[0],
+            //                         -c.radius * cos45 + c.pos[1]);
+            // circleGraphics.lineTo(-0.5 * c.radius * cos45 + c.pos[0],
+            //                         -c.radius * cos45 + c.pos[1] + 0.5 * c.radius);
+
+            renderOutline(c);
+            c.text.visible = false;
+        }
+    }
+    for (const c of circles) {
+        if (!c.isCoin && c.index === -1) { // not a coin, unindexed
+            circleGraphics.beginFill(0xbb0071);
+            circleGraphics.lineStyle(0, 0);
+            circleGraphics.drawCircle(c.pos[0], c.pos[1], c.radius);
+            circleGraphics.endFill();
+
+            renderOutline(c);
+        }
+    }
+    for (const c of circles) {
+        if (c.isCoin) { // coin
+            circleGraphics.beginFill(0xFFD700);
+            circleGraphics.lineStyle(0, 0);
+            circleGraphics.drawCircle(c.pos[0], c.pos[1], c.radius);
+            circleGraphics.endFill();
+
+            renderOutline(c);
+        }
+    }
+
+    // for (const c of circles) {
+    //     if (c.index === currentPopIndex || level === 0) {
+    //         c.text.tint = 0xffffff;
+    //     } else if (c.text) {
+    //         c.text.tint = 0x777777;
+    //     }
+
+    //     circleGraphics.beginFill(c.isCoin ?  : 0xbb0071);
+    //     circleGraphics.lineStyle(0, 0);
+    //     circleGraphics.drawCircle(c.pos[0], c.pos[1], c.radius);
+    //     circleGraphics.endFill();
+
+    //     circleGraphics.lineStyle(5.0, 0x00ffff);
+    //     if (!c.isCoin) {
+    //         let offset = vec2.fromValues(0, 0);
+    //         if (c.index in rumbleCircle) {
+    //             offset = getRumbleOffset();
+    //         }
+    //         const cp = vec2.fromValues(offset[0] + c.pos[0],
+    //                                    offset[1] + c.pos[1]);
+
+    //         const parts = c.origLife;
+    //         if (parts === 1) {
+    //             circleGraphics.drawCircle(cp[0], cp[1], c.radius);
+    //         } else {
+    //             const gapRadians = 10.0 / 180.0 * Math.PI;
+    //             const perPartRadians = MSGlobal.G.TWO_PI / parts;
+    //             for (let c_part = 0; c_part < parts; ++c_part) {
+    //                 if (c_part < c.life) {
+    //                     const startTheta = c_part * perPartRadians;
+    //                     const endTheta = (c_part + 1) * perPartRadians - gapRadians;
+    //                     const startPos = vec2.fromValues(
+    //                         cp[0] + c.radius * Math.cos(startTheta),
+    //                         cp[1] + c.radius * Math.sin(startTheta),
+    //                     );
+    //                     circleGraphics.moveTo(startPos[0], startPos[1]);
+    //                     circleGraphics.arc(cp[0], cp[1], c.radius, startTheta, endTheta);
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 
     // debug render target
     // circleGraphics.beginFill(0xFF0000);
@@ -910,6 +1069,13 @@ export function processInput(clicked: boolean,
     }
 }
 
+export function pauseInOptions() {
+    if (!Options.isOnShow()) {
+        pauseTimeMillisecs = Date.now();
+        Options.show();
+    }
+}
+
 // *******************************************************************************************************
 export function processInputInGame(clicked: boolean,
                                    mouseDown: boolean,
@@ -918,8 +1084,7 @@ export function processInputInGame(clicked: boolean,
                                    screenY: number) {
     if (countdownTimerStartMillisecs > 0) { // do timer countdown
         if (clicked && optionsButton.contains(vec2.fromValues(screenX, screenY))) {
-            pauseTimeMillisecs = Date.now();
-            Options.show();
+            pauseInOptions();
         } else if (clicked && shopButton.contains(vec2.fromValues(screenX, screenY))) {
             pauseTimeMillisecs = Date.now();
             MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("shopButton", null, { from: "CountDown" });
@@ -930,8 +1095,7 @@ export function processInputInGame(clicked: boolean,
             gameContainer.visible = false;
         }
     } else if (clicked && optionsButton.contains(vec2.fromValues(screenX, screenY))) {
-        pauseTimeMillisecs = Date.now();
-        Options.show();
+        pauseInOptions();
     } else if (clicked && shopButton.contains(vec2.fromValues(screenX, screenY))) {
         pauseTimeMillisecs = Date.now();
         MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("shopButton", null, { from: "InGame" });

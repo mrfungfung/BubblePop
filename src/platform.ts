@@ -7,6 +7,9 @@ export enum EAdType {
 }
 
 export interface IPlatform {
+    getCurrentContextHiScore(contextID: any): Promise<any>;
+    postCurrentContextHiScore(contextID: any, hiscore: number, hiscore_playerid: string): Promise<any>;
+
     initializeAsync(): Promise<any>;
     startGameAsync(): Promise<any>;
     canShowAds(adType: EAdType): boolean;
@@ -20,6 +23,7 @@ export interface IPlatform {
     setPlayerName(name: string): void;
     getContextType(): any;
     getContextID(): any;
+    getPlayersAsync(): Promise<IConnectedPlayer[]>;
     getConnectedPlayersAsync(): Promise<IConnectedPlayer[]>;
 
     setSessionData(data: any): void;

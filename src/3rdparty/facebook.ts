@@ -140,6 +140,24 @@ export class FBPlatform implements IPlatform {
     public fbShareManager = new FBShareManager();
     public fbAnalyticsManager = new FBAnalyticsManager();
 
+    public postCurrentContextHiScore(contextID: any, hiscore: number, hiscore_playerid: string): Promise<any> {
+        // lets also tell the world i am playing
+        return Axios.post(MSGlobal.BOT_SERVER + "/contexthiscoreinfo", {
+            contextid: contextID,
+            hiscore,
+            hiscore_playerid,
+        });
+    }
+
+    public getCurrentContextHiScore(contextID: any): Promise<any> {
+        // lets also tell the world i am playing
+        return Axios.get(MSGlobal.BOT_SERVER + "/contexthiscoreinfo", {
+            params: {
+                contextid: contextID,
+            },
+        });
+    }
+
     public setLoadingProgress(percentage: number): void {
         FBInstant.setLoadingProgress(percentage);
     }
@@ -186,6 +204,22 @@ export class FBPlatform implements IPlatform {
             .then(function(leaderboard: any) {
                 const fbl = new FBLeaderboard(leaderboard);
                 resolve(fbl);
+            }).catch(function(error: any) {
+                reject(error);
+            });
+        });
+    }
+
+    public getPlayersAsync(): Promise<IConnectedPlayer[]> {
+        return new Promise(function(resolve: any, reject: any) {
+            FBInstant.player.getPlayersAsync()
+            .then(function(players: any) {
+                const fbps = [];
+                for (const p of players) {
+                    const fbp = new FBConnectedPlayer(p);
+                    fbps.push(fbp);
+                }
+                resolve(fbps);
             }).catch(function(error: any) {
                 reject(error);
             });

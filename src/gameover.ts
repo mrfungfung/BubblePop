@@ -446,7 +446,7 @@ export function processInput(clicked: boolean,
                             screenY);
         if (finished) {
             container.visible = true;
-            leaderboardContainer.visible = true;
+            if (leaderboardContainer) { leaderboardContainer.visible = true; }
             CoinsButton.show();
         }
     } else if (!gameOverPopUpContainer) {
@@ -473,7 +473,7 @@ export function processInput(clicked: boolean,
             } else if (shopButton.contains(vec2.fromValues(screenX, screenY))) {
                 MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("shopButton", null, { from: "GameOver" });
                 container.visible = false;
-                leaderboardContainer.visible = false;
+                if (leaderboardContainer) { leaderboardContainer.visible = false; }
                 CoinsButton.hide();
                 CoinShop.show();
             } else if (restartButton.contains(vec2.fromValues(screenX, screenY))) {

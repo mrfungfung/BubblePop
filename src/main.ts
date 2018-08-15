@@ -1,9 +1,6 @@
-// game
+// bottage: (10 mins coins lol ready bonus) (after 3 days no play - FREE coin) (5 days no play? - FREE COIN reminder)
 // make it not look like shit
-
 // sound
-
-// bottage: 1 / 3 / 5 day reminder (+ coins ready bonus)
 
 // monetization
 // - offer time extend on dead
@@ -239,12 +236,22 @@ window.onload = function() {
                         AdsManager.preloadAds(EAdType.EADTYPE_INTERSTITIAL);
                     }
 
+                    // set my info for backend to be picked up
+                    MSGlobal.PlatformInterface.setSessionData(
+                        {facebookname: MSGlobal.PlatformInterface.getPlayerName()});
+
                     // grab save data
                     // CoinShop.resetsaveload();
-
                     Options.load();
                     Game.load();
                     CoinShop.load();
+
+                    // set up the stupid on pause
+                    MSGlobal.PlatformInterface.setOnPauseCallback(function() {
+                        if (gameState === EGameState.EGAMESTATE_IN_GAME) {
+                            Game.pauseInOptions();
+                        }
+                    });
 
                     // been removed and the user can see the game viewport
                     MSGlobal.log("calling startGame");

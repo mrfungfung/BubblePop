@@ -18,6 +18,9 @@ declare var process: any;
 import {IPlatform, PlatformAPI} from "./platform";
 export const PlatformInterface: IPlatform = new PlatformAPI();
 
+export const BOT_SERVER = "https://fbbotserver.herokuapp.com";
+// export const BOT_SERVER = "http://localhost:5000";
+
 // *********************************************************
 export function log(v: any): void {
     G.log(v);

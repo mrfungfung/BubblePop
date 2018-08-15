@@ -119,6 +119,18 @@ export class WebPlatform implements IPlatform {
         }
     }
 
+    public getCurrentContextHiScore(contextID: any): Promise<any> {
+        return new Promise(function(resolve: any, reject: any) {
+            resolve();
+        });
+    }
+
+    public postCurrentContextHiScore(contextID: any, hiscore: number, hiscore_playerid: string): Promise<any> {
+        return new Promise(function(resolve: any, reject: any) {
+            resolve();
+        });
+    }
+
     public setLoadingProgress(percentage: number): void {
         // FBInstant.setLoadingProgress(percentage);
     }
@@ -161,6 +173,12 @@ export class WebPlatform implements IPlatform {
     public getLeaderboardAsync(name: any): Promise<ILeaderboard> {
         return new Promise(function(resolve: any, reject: any) {
             resolve(new WebLeaderboard());
+        });
+    }
+
+    public getPlayersAsync(): Promise<IConnectedPlayer[]> {
+        return new Promise(function(resolve: any, reject: any) {
+            resolve([]);
         });
     }
 
