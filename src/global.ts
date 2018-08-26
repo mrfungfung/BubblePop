@@ -124,7 +124,7 @@ export function secondsToString(seconds: number, shorten: boolean, numElements: 
     const numseconds = Math.floor((((seconds % 31536000) % 86400) % 3600) % 60);
     decomposed.push(numyears, numdays, numhours, numminutes, numseconds);
     if (shorten) {
-        units.push("yrs", "days", "hrs", "min", "s");
+        units.push("y", "d", "h", "m", "s");
     } else {
         units.push("years", "days", "hours", "minutes", "seconds");
     }

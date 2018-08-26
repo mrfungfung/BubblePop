@@ -1,5 +1,5 @@
 import {vec2} from "gl-matrix";
-import {Container, Graphics, Sprite} from "pixi.js";
+import {Container, Graphics, Sprite, Texture} from "pixi.js";
 import { Button } from "./button";
 import * as CoinsButton from "./coinsbutton";
 import * as CoinShop from "./coinshop";
@@ -7,6 +7,7 @@ import * as GameOver from "./gameover";
 import * as MSGlobal from "./global";
 import * as main from "./main";
 import * as Options from "./options";
+import * as Title from "./title";
 
 // tslint:disable:no-var-requires
 const MultiStyleText = require("pixi-multistyle-text");
@@ -14,10 +15,11 @@ const MultiStyleText = require("pixi-multistyle-text");
 
 // spritesss
 let bgContainer: Container = null;
-const MAX_DX = 200;
 let bgSprite: Sprite = null;
-let mgSprite: Sprite = null;
-let fgSprite: Sprite = null;
+let cup: Sprite = null;
+let teaSurface: Sprite = null;
+let straw: Sprite = null;
+let timerStraw: Sprite = null;
 
 // *********************************************************
 // modal confirm
@@ -40,7 +42,6 @@ let SAFE_TOP_Y = 0;
 let countdownTimerStartMillisecs: number = 0;
 let countdownTimerGraphics: Graphics = null;
 let countdownTimerButton: Button = null;
-let levelButton: Button = null;
 let optionsButton: Button = null;
 let shopButton: Button = null;
 
@@ -90,8 +91,6 @@ let buttonGraphics: Graphics = null;
 let timerButton: Button = null;
 let scoreButton: Button = null;
 
-let timerLineGfx: Graphics = null;
-
 class Circle {
     public isCoin: boolean = false;
     public index: number = -1;
@@ -105,6 +104,9 @@ class Circle {
     public speed: number = 1.0;
     public teleport: boolean = false;
     public teleportStartTimerMillisecs: number = 0;
+    public sprite: Sprite = null;
+    public extraBubblesDelta: vec2[] = [];
+    public extraBubbles: Sprite[] = [];
 }
 let circles: Circle[] = [];
 
@@ -219,49 +221,26 @@ export function show() {
     main.g_PixiApp.stage.addChild(topUIContainer);
     CoinsButton.show();
 
-    bgSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./bg.png"]);
-    mgSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./mg.png"]);
-    fgSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./fg.png"]);
-    fgSprite.anchor.set(0.5);
-    fgSprite.x = main.g_HalfScaledRendererWidth;
-    fgSprite.y = main.g_HalfScaledRendererHeight;
-    fgSprite.width = bgSprite.width + MAX_DX;
-
-    bgContainer.addChild(bgSprite);
-    bgContainer.addChild(mgSprite);
-    bgContainer.addChild(fgSprite);
+    const sprites = Title.setupBG(bgContainer);
+    bgSprite = sprites.bgSprite;
+    cup = sprites.cup;
+    teaSurface = sprites.teaSurface;
+    straw = sprites.straw;
 
     // countdown
     countdownTimerGraphics = new Graphics();
     countdownContainer.addChild(countdownTimerGraphics);
 
-    countdownTimerButton = new Button("Get ready!", null);
-    countdownTimerButton.setSizeToText(main.GUMPH);
-    countdownTimerButton.setSize(vec2.fromValues(
-        0.8 * main.g_ScaledRendererWidth, countdownTimerButton.m_Size[1],
-    ));
+    countdownTimerButton = new Button("<bigger>Round\n1\n</bigger><smaller>Get Ready!</smaller>", main.FONT_STYLES);
+    const board = Texture.fromImage(MSGlobal.ASSET_DIR["./board_round-score@2x.png"]);
+    countdownTimerButton.setSprite(board.baseTexture);
+    countdownTimerButton.setSizeToSprite(0);
     countdownTimerButton.setCenterPos(vec2.fromValues(
         main.g_HalfScaledRendererWidth,
         main.g_HalfScaledRendererHeight,
     ));
-    countdownTimerButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0x7a7acf, 0.95, countdownTimerGraphics);
+    countdownContainer.addChild(countdownTimerButton.m_Sprite);
     countdownContainer.addChild(countdownTimerButton.m_Text);
-
-    levelButton = new Button("Round 1", null);
-    levelButton.setSizeToText(main.GUMPH);
-    levelButton.setSize(vec2.fromValues(
-        0.8 * main.g_ScaledRendererWidth, countdownTimerButton.m_Size[1],
-    ));
-    levelButton.setCenterPos(vec2.fromValues(
-        main.g_HalfScaledRendererWidth,
-        countdownTimerButton.m_CenterPos[1] - 0.5 * countdownTimerButton.m_Size[1]
-        - main.GUMPH
-        - 0.5 * levelButton.m_Size[1],
-    ));
-    levelButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0x00cf7a, 0.95, countdownTimerGraphics);
-    countdownContainer.addChild(levelButton.m_Text);
 
     // in game stuff
     circleGraphics = new Graphics();
@@ -270,69 +249,62 @@ export function show() {
     buttonGraphics = new Graphics();
     topUIContainer.addChild(buttonGraphics);
 
-    timerButton = new Button("Time: ", null);
-    timerButton.setSizeToText(main.GUMPH);
-    timerButton.setSize(vec2.fromValues(
-        150, timerButton.m_Size[1],
-    ));
+    timerButton = new Button("999\n<smaller>Time</smaller>", main.FONT_STYLES);
+    timerButton.setSizeToText(0);
     timerButton.setCenterPos(vec2.fromValues(
-        main.g_HalfScaledRendererWidth,
-        main.SMALL_GUMPH + 0.5 * timerButton.m_Size[1],
+        main.g_ScaledRendererWidth - main.SMALL_GUMPH - timerButton.getHalfWidth(),
+        main.SMALL_GUMPH + timerButton.getHalfHeight(),
     ));
-    timerButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0x7a00cf, 0.95, buttonGraphics);
     topUIContainer.addChild(timerButton.m_Text);
 
-    scoreButton = new Button(score + " Hi: " + hiscore, null);
-    scoreButton.setSizeToText(main.GUMPH);
-    scoreButton.setSize(vec2.fromValues(
-        100, scoreButton.m_Size[1],
-    ));
+    scoreButton = new Button("999\n<smaller>Score</smaller>", main.FONT_STYLES);
+    scoreButton.setSizeToText(0);
     scoreButton.setCenterPos(vec2.fromValues(
-        main.SMALL_GUMPH + 0.5 * scoreButton.m_Size[0],
-        main.SMALL_GUMPH + 0.5 * scoreButton.m_Size[1],
+        main.SMALL_GUMPH + scoreButton.getHalfWidth(),
+        main.SMALL_GUMPH + scoreButton.getHalfHeight(),
     ));
-    scoreButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0x7a00cf, 0.95, buttonGraphics);
+    scoreButton.m_Text.text = "0\n<smaller>Score</smaller>";
     topUIContainer.addChild(scoreButton.m_Text);
 
     // actual in game UI
     const ingameGfx = new Graphics();
     gameContainer.addChild(ingameGfx);
-    optionsButton = new Button("O", null);
-    optionsButton.setSizeToText(main.GUMPH);
-    optionsButton.setCenterPos(vec2.fromValues(
-        main.g_ScaledRendererWidth - 0.5 * optionsButton.m_Size[0],
-        main.g_ScaledRendererHeight - 0.5 * optionsButton.m_Size[1],
-    ));
-    optionsButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0xff0000, 0.95, ingameGfx);
-    optionsButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0xff0000, 0.95, countdownTimerGraphics);
-    countdownContainer.addChild(optionsButton.m_Text);
 
-    shopButton = new Button("Shop", null);
-    shopButton.setSizeToText(main.GUMPH);
-    shopButton.setCenterPos(vec2.fromValues(
-        optionsButton.getLeftX() - main.GUMPH - shopButton.getHalfWidth(),
-        main.g_ScaledRendererHeight - 0.5 * shopButton.m_Size[1],
+    optionsButton = new Button("", null);
+    const settingsTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./btn_settings@2x.png"]);
+    optionsButton.setSprite(settingsTexture.baseTexture);
+    optionsButton.scaleSprite(vec2.fromValues(main.g_CurrentScaleW, main.g_CurrentScaleH));
+    optionsButton.setSizeToSprite(0);
+    optionsButton.setCenterPos(vec2.fromValues(
+        main.g_ScaledRendererWidth - main.SMALL_GUMPH - optionsButton.getHalfWidth(),
+        main.g_ScaledRendererHeight - main.SMALL_GUMPH - optionsButton.getHalfHeight(),
     ));
-    shopButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0xFFD700, 0.95, ingameGfx);
-    shopButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0xFFD700, 0.95, countdownTimerGraphics);
-    countdownContainer.addChild(shopButton.m_Text);
+    countdownContainer.addChild(optionsButton.m_Sprite);
+
+    shopButton = new Button("", null);
+    const shopTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./btn_shop@2x.png"]);
+    shopButton.setSprite(shopTexture.baseTexture);
+    shopButton.scaleSprite(vec2.fromValues(main.g_CurrentScaleW, main.g_CurrentScaleH));
+    shopButton.setSizeToSprite(0);
+    shopButton.setCenterPos(vec2.fromValues(
+        optionsButton.getLeftX() - main.SMALL_GUMPH - shopButton.getHalfWidth(),
+        main.g_ScaledRendererHeight - main.SMALL_GUMPH - shopButton.getHalfHeight(),
+    ));
+    countdownContainer.addChild(shopButton.m_Sprite);
 
     SAFE_BOTTOM_Y = timerButton.m_CenterPos[1] + 0.5 * timerButton.m_Size[1] + main.SMALL_GUMPH;
     SAFE_TOP_Y = optionsButton.getTopY();
 
-    timerLineGfx = new Graphics();
-    gameContainer.addChild(timerLineGfx);
     LINE_Y = scoreButton.getBottomY() + main.SMALL_GUMPH + 0.5 * LINE_WIDTH;
-    timerLineGfx.lineStyle(LINE_WIDTH, 0xffffff);
-    timerLineGfx.moveTo(0, LINE_Y);
-    timerLineGfx.lineTo(main.g_ScaledRendererWidth, LINE_Y);
-    timerLineGfx.endFill();
+    const strawTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./straw@2x.png"]);
+    timerStraw = Sprite.from(strawTexture.baseTexture);
+    timerStraw.anchor.set(0.5, 0);
+    timerStraw.rotation = -0.5 * Math.PI;
+    timerStraw.x = 0;
+    timerStraw.y = LINE_Y;
+    timerStraw.width = LINE_WIDTH;
+    timerStraw.height = main.g_ScaledRendererWidth;
+    gameContainer.addChild(timerStraw);
 
     // power ups
     powerUpButton = null;
@@ -362,11 +334,11 @@ function startTimerForLevel() {
 
     // set the timer for countdown
     countdownTimerStartMillisecs = Date.now();
-    timerButton.m_Text.text = "Time: " + currentTimePerGameSecs;
+    timerButton.m_Text.text = currentTimePerGameSecs + "\n<smaller>Time</smaller>";
 
     // set the round number and level up
     ++level;
-    levelButton.m_Text.text = "Round " + (level + 1);
+    countdownTimerButton.m_Text.text = "<bigger>Round\n" + (level + 1) + "\n</bigger><smaller>Get Ready!</smaller>";
 }
 
 // *******************************************************************************************************
@@ -395,7 +367,7 @@ function initNewBubbles() {
             c.life = c.origLife;
         }
 
-        if (!c.isCoin && level >= MIN_LEVEL_FOR_POP_INDEX && Math.random() < 0.5) {
+        if (c.life === 1 && !c.isCoin && level >= MIN_LEVEL_FOR_POP_INDEX && Math.random() < 0.5) {
             c.index = popIndex++;
         }
         if (level === 0) {
@@ -438,19 +410,53 @@ function initNewBubbles() {
             updateTarget(c, null);
         }
 
+        let bubbleTexture = null;
+        if (c.isCoin) {
+            bubbleTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./bubble_coin@2x.png"]);
+        } else if (c.index === 0) {
+            bubbleTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./bubble_active@2x.png"]);
+        } else if (c.index > 0) {
+            bubbleTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./bubble_inactive@2x.png"]);
+        } else {
+            bubbleTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./bubble_normal@2x.png"]);
+        }
+
+        c.sprite = Sprite.from(bubbleTexture.baseTexture);
+        if (c.index > 0) {
+            c.sprite.alpha = 0.5;
+        }
+        c.sprite.anchor.set(0.5);
+        c.sprite.rotation = MSGlobal.G.symmetricRand() * 0.1 * Math.PI;
+        c.sprite.width = c.sprite.height = 2 * c.radius;
+        c.sprite.x = c.pos[0];
+        c.sprite.y = c.pos[1];
+        gameContainer.addChild(c.sprite);
+
+        if (c.life > 1) {
+            const smallBubbleTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./smallbubble.png"]);
+            const numExtraBubbles = c.life - 1;
+            const degParts = MSGlobal.G.TWO_PI / numExtraBubbles;
+            const startDeg = Math.random() * MSGlobal.G.TWO_PI;
+            for (let c_bubble = 0; c_bubble < numExtraBubbles; ++c_bubble) {
+                const d = startDeg + c_bubble * degParts;
+                const extraBubble = Sprite.from(smallBubbleTexture.baseTexture);
+                extraBubble.anchor.set(0.5);
+                extraBubble.rotation = MSGlobal.G.symmetricRand() * 0.1 * Math.PI;
+                extraBubble.width = extraBubble.height = Math.max(20, 0.4 * (2 * c.radius));
+                const delta = vec2.fromValues(Math.sin(d), Math.cos(d));
+                c.extraBubblesDelta.push(delta);
+                extraBubble.x = c.pos[0] + c.radius * delta[0];
+                extraBubble.y = c.pos[1] + c.radius * delta[1];
+                c.extraBubbles.push(extraBubble);
+                gameContainer.addChild(extraBubble);
+            }
+        }
+
         if (c.index >= 0 || level === 0) {
-            c.text = new MultiStyleText(level === 0 ? "TAP ME!" : c.index + 1, {
-                default: {
-                    fill: "0xFFFFFF",
-                    fontSize: "25px",
-                    lineJoin: "round",
-                    stroke: "0x0",
-                    strokeThickness: "4",
-                },
-            });
+            c.text = new MultiStyleText(level === 0 ? "TAP ME!" : "", main.FONT_STYLES);
             c.text.anchor.set(0.5);
             c.text.x = c.pos[0];
-            c.text.y = c.pos[1];
+            c.text.y = c.pos[1] - c.radius - 0.5 * c.text.height;
             gameContainer.addChild(c.text);
         }
 
@@ -506,15 +512,11 @@ function updateTimer(): boolean {
     // adjust the UI for time left
     const timeElapsedSecs = (Date.now() / 1000 - startTimeSecs);
     const timeLeftSecs = Math.max(currentTimePerGameSecs - timeElapsedSecs, 0);
-    timerButton.m_Text.text = "Time: " + Math.ceil(timeLeftSecs);
+    timerButton.m_Text.text = Math.ceil(timeLeftSecs) + "\n<smaller>Time</smaller>";
     const offset = getRumbleOffset();
 
-    timerLineGfx.clear();
-    timerLineGfx.lineStyle(LINE_WIDTH, 0xffffff);
-    timerLineGfx.moveTo(offset[0], offset[1] + LINE_Y);
-    timerLineGfx.lineTo(offset[0] + timeLeftSecs / currentTimePerGameSecs * main.g_ScaledRendererWidth,
-                        offset[1] + LINE_Y);
-    timerLineGfx.endFill();
+    timerStraw.height = offset[0] + timeLeftSecs / currentTimePerGameSecs * main.g_ScaledRendererWidth;
+    gameContainer.addChild(timerStraw);
 
     return (timeLeftSecs === 0);
 }
@@ -524,11 +526,11 @@ function transitionToInGame() {
     main.g_PixiApp.stage.removeChild(countdownContainer);
     main.g_PixiApp.stage.addChild(gameContainer);
 
-    countdownContainer.removeChild(shopButton.m_Text);
-    gameContainer.addChild(shopButton.m_Text);
+    countdownContainer.removeChild(shopButton.m_Sprite);
+    gameContainer.addChild(shopButton.m_Sprite);
 
-    countdownContainer.removeChild(optionsButton.m_Text);
-    gameContainer.addChild(optionsButton.m_Text);
+    countdownContainer.removeChild(optionsButton.m_Sprite);
+    gameContainer.addChild(optionsButton.m_Sprite);
 
     if (powerUpButton) {
         countdownContainer.removeChild(powerUpButtonGfx);
@@ -553,11 +555,11 @@ function transitionToCountdown() { // advance a level
     main.g_PixiApp.stage.removeChild(gameContainer);
     main.g_PixiApp.stage.addChild(countdownContainer);
 
-    gameContainer.removeChild(shopButton.m_Text);
-    countdownContainer.addChild(shopButton.m_Text);
+    gameContainer.removeChild(shopButton.m_Sprite);
+    countdownContainer.addChild(shopButton.m_Sprite);
 
-    gameContainer.removeChild(optionsButton.m_Text);
-    countdownContainer.addChild(optionsButton.m_Text);
+    gameContainer.removeChild(optionsButton.m_Sprite);
+    countdownContainer.addChild(optionsButton.m_Sprite);
 
     if (powerUpButton) {
         gameContainer.removeChild(powerUpButtonGfx);
@@ -687,16 +689,7 @@ export function process() {
 }
 
 function processBG() {
-    const dx = main.gamma / 90.0 * MAX_DX;
-    bgSprite.x = dx / 5;
-    mgSprite.x = dx / 2;
-    fgSprite.x = main.g_HalfScaledRendererWidth + dx;
-
-    const MAX_DY = 200;
-    const dy = main.beta / 180.0 * MAX_DY;
-    bgSprite.y = dy / 5;
-    mgSprite.y = dy / 2;
-    fgSprite.y = main.g_HalfScaledRendererHeight + dy;
+    Title.processBG(straw, cup, teaSurface);
 }
 
 // *******************************************************************************************************
@@ -861,70 +854,86 @@ function updateRenderCircles() {
     circleGraphics.clear();
 
     // we render things in order
+    // for (const c of circles) {
+    //     if (!c.isCoin && c.index !== -1 && c.index !== currentPopIndex) { // not a coin, indexed, not chosen
+    //         circleGraphics.beginFill(0x21b166);
+    //         circleGraphics.lineStyle(0, 0);
+    //         circleGraphics.drawCircle(c.pos[0], c.pos[1], c.radius);
+    //         circleGraphics.endFill();
+
+    //         circleGraphics.lineStyle(5.0, 0x888800);
+    //         const cos45 = Math.cos(0.25 * Math.PI);
+    //         const sin45 = Math.sin(0.25 * Math.PI);
+    //         circleGraphics.moveTo(c.radius * cos45 + c.pos[0],
+    //                               c.radius * sin45 + c.pos[1]);
+    //         circleGraphics.lineTo(-c.radius * cos45 + c.pos[0],
+    //                               -c.radius * sin45 + c.pos[1]);
+    //         circleGraphics.moveTo(-c.radius * cos45 + c.pos[0],
+    //                               c.radius * sin45 + c.pos[1]);
+    //         circleGraphics.lineTo(c.radius * cos45 + c.pos[0],
+    //                               -c.radius * sin45 + c.pos[1]);
+
+    //         renderOutline(c);
+    //         c.text.visible = false;
+    //     }
+    // }
+    // for (const c of circles) {
+    //     if (!c.isCoin && c.index !== -1 && c.index === currentPopIndex) { // not a coin, indexed, chosen
+    //         circleGraphics.beginFill(0x88ff88);
+    //         circleGraphics.lineStyle(0, 0);
+    //         circleGraphics.drawCircle(c.pos[0], c.pos[1], c.radius);
+    //         circleGraphics.endFill();
+
+    //         // circleGraphics.lineStyle(5.0, 0xffff00);
+    //         // const cos45 = Math.cos(0.25 * Math.PI);
+    //         // const sin45 = Math.sin(0.25 * Math.PI);
+    //         // circleGraphics.moveTo(0.5 * c.radius * cos45 + c.pos[0],
+    //         //                       -c.radius * cos45 + c.pos[1]);
+    //         // circleGraphics.lineTo(0.5 * c.radius * cos45 + c.pos[0],
+    //         //                       -c.radius * cos45 + c.pos[1] + 0.5 * c.radius);
+    //         // circleGraphics.moveTo(-0.5 * c.radius * cos45 + c.pos[0],
+    //         //                         -c.radius * cos45 + c.pos[1]);
+    //         // circleGraphics.lineTo(-0.5 * c.radius * cos45 + c.pos[0],
+    //         //                         -c.radius * cos45 + c.pos[1] + 0.5 * c.radius);
+
+    //         renderOutline(c);
+    //         c.text.visible = false;
+    //     }
+    // }
+    // for (const c of circles) {
+    //     if (!c.isCoin && c.index === -1) { // not a coin, unindexed
+    //         circleGraphics.beginFill(0xbb0071);
+    //         circleGraphics.lineStyle(0, 0);
+    //         circleGraphics.drawCircle(c.pos[0], c.pos[1], c.radius);
+    //         circleGraphics.endFill();
+
+    //         renderOutline(c);
+    //     }
+    // }
+    // for (const c of circles) {
+    //     if (c.isCoin) { // coin
+    //         circleGraphics.beginFill(0xFFD700);
+    //         circleGraphics.lineStyle(0, 0);
+    //         circleGraphics.drawCircle(c.pos[0], c.pos[1], c.radius);
+    //         circleGraphics.endFill();
+
+    //         renderOutline(c);
+    //     }
+    // }
+
     for (const c of circles) {
-        if (!c.isCoin && c.index !== -1 && c.index !== currentPopIndex) { // not a coin, indexed, not chosen
-            circleGraphics.beginFill(0x21b166);
-            circleGraphics.lineStyle(0, 0);
-            circleGraphics.drawCircle(c.pos[0], c.pos[1], c.radius);
-            circleGraphics.endFill();
-
-            circleGraphics.lineStyle(5.0, 0x888800);
-            const cos45 = Math.cos(0.25 * Math.PI);
-            const sin45 = Math.sin(0.25 * Math.PI);
-            circleGraphics.moveTo(c.radius * cos45 + c.pos[0],
-                                  c.radius * sin45 + c.pos[1]);
-            circleGraphics.lineTo(-c.radius * cos45 + c.pos[0],
-                                  -c.radius * sin45 + c.pos[1]);
-            circleGraphics.moveTo(-c.radius * cos45 + c.pos[0],
-                                  c.radius * sin45 + c.pos[1]);
-            circleGraphics.lineTo(c.radius * cos45 + c.pos[0],
-                                  -c.radius * sin45 + c.pos[1]);
-
-            renderOutline(c);
-            c.text.visible = false;
+        let offset = vec2.fromValues(0, 0);
+        if (c.index in rumbleCircle) {
+            offset = getRumbleOffset();
         }
-    }
-    for (const c of circles) {
-        if (!c.isCoin && c.index !== -1 && c.index === currentPopIndex) { // not a coin, indexed, chosen
-            circleGraphics.beginFill(0x88ff88);
-            circleGraphics.lineStyle(0, 0);
-            circleGraphics.drawCircle(c.pos[0], c.pos[1], c.radius);
-            circleGraphics.endFill();
+        c.sprite.x = c.pos[0] + offset[0];
+        c.sprite.y = c.pos[1] + offset[1];
+        c.sprite.width = c.sprite.height = 2 * c.radius;
 
-            // circleGraphics.lineStyle(5.0, 0xffff00);
-            // const cos45 = Math.cos(0.25 * Math.PI);
-            // const sin45 = Math.sin(0.25 * Math.PI);
-            // circleGraphics.moveTo(0.5 * c.radius * cos45 + c.pos[0],
-            //                       -c.radius * cos45 + c.pos[1]);
-            // circleGraphics.lineTo(0.5 * c.radius * cos45 + c.pos[0],
-            //                       -c.radius * cos45 + c.pos[1] + 0.5 * c.radius);
-            // circleGraphics.moveTo(-0.5 * c.radius * cos45 + c.pos[0],
-            //                         -c.radius * cos45 + c.pos[1]);
-            // circleGraphics.lineTo(-0.5 * c.radius * cos45 + c.pos[0],
-            //                         -c.radius * cos45 + c.pos[1] + 0.5 * c.radius);
-
-            renderOutline(c);
-            c.text.visible = false;
-        }
-    }
-    for (const c of circles) {
-        if (!c.isCoin && c.index === -1) { // not a coin, unindexed
-            circleGraphics.beginFill(0xbb0071);
-            circleGraphics.lineStyle(0, 0);
-            circleGraphics.drawCircle(c.pos[0], c.pos[1], c.radius);
-            circleGraphics.endFill();
-
-            renderOutline(c);
-        }
-    }
-    for (const c of circles) {
-        if (c.isCoin) { // coin
-            circleGraphics.beginFill(0xFFD700);
-            circleGraphics.lineStyle(0, 0);
-            circleGraphics.drawCircle(c.pos[0], c.pos[1], c.radius);
-            circleGraphics.endFill();
-
-            renderOutline(c);
+        for (let e = 0; e < c.extraBubbles.length; ++e) {
+            const eb = c.extraBubbles[e];
+            eb.x = c.pos[0] + c.radius * c.extraBubblesDelta[e][0];
+            eb.y = c.pos[1] + c.radius * c.extraBubblesDelta[e][1];
         }
     }
 
@@ -982,17 +991,29 @@ function updateRenderCircles() {
 // *******************************************************************************************************
 function popBubble(c: Circle) {
     ++totalBubblesPoppedEver;
-    if (c.index >= 0) { currentPopIndex++; }
+    if (c.index >= 0) {
+        currentPopIndex++;
+        for (const cc of circles) {
+            if (cc.index === currentPopIndex) {
+                cc.sprite.texture = Texture.fromImage(MSGlobal.ASSET_DIR["./bubble_active@2x.png"]);
+                cc.sprite.alpha = 1;
+                gameContainer.removeChild(cc.sprite);
+                gameContainer.addChild(cc.sprite);
+            }
+        }
+    }
     if (c.isCoin) {
         changeCoins(1);
         CoinsButton.updateCoinsButton();
     } else {
         score++;
-        scoreButton.m_Text.text = score + " Hi: " + hiscore;
+        scoreButton.m_Text.text = score + "\n<smaller>Score</smaller>";
     }
 
     if (c.text) { gameContainer.removeChild(c.text); }
     c.text = null;
+
+    gameContainer.removeChild(c.sprite);
 }
 
 // *******************************************************************************************************
@@ -1131,6 +1152,11 @@ export function processInputInGame(clicked: boolean,
                             if (circles.length === 0) {
                                 transitionToCountdown();
                             }
+                        } else {
+                            if (tc.circle.extraBubbles.length > 0) {
+                                gameContainer.removeChild(tc.circle.extraBubbles[tc.circle.extraBubbles.length - 1]);
+                                tc.circle.extraBubbles.pop();
+                            }
                         }
                         break;
                     }
@@ -1160,7 +1186,7 @@ function freeze() {
 function updateFreezeButton() {
     const isFrozen = (freezeTimeStartMS !== 0);
     const thing = CoinShop.thingsToBuy[1];
-    if (thing.bought > 0 || isFrozen) {
+    if (thing && (thing.bought > 0 || isFrozen)) {
         if (!powerUpButton) {
             powerUpButtonGfx = new Graphics();
 

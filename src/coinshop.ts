@@ -1,34 +1,38 @@
 import {vec2} from "gl-matrix";
-import {Container, Graphics} from "pixi.js";
+import {Container, Graphics, Sprite, Texture} from "pixi.js";
 import { Button } from "./button";
 import * as CoinsButton from "./coinsbutton";
 import * as Game from "./game";
 import * as MSGlobal from "./global";
 import * as main from "./main";
 
+// tslint:disable:no-var-requires
+const MultiStyleText = require("pixi-multistyle-text");
+// tslint:enable:no-var-requires
+
 // *********************************************************
 let container: Container = null;
 let buttonGraphics: Graphics = null;
 let leftButton: Button = null;
 let rightButton: Button = null;
-let thingButton: Button = null;
+let thingSprite: Sprite = null;
+let thingName: any = null;
+let thingCost: Button = null;
 let buyButton: Button = null;
-let buyButtonGfx: Graphics = null;
 let backButton: Button = null;
 let currentThingIndex = 0;
 
 class ThingToBuy {
+    public texturefilepath: string = MSGlobal.ASSET_DIR["./item_timer@2x.png"];
     public name: string = "";
     public costInCoins: number = 0;
     public bought: number = 0;
 }
 export const thingsToBuy: ThingToBuy[] = [];
-for (let i = 0; i < 2; ++i) {
+for (let i = 0; i < 1; ++i) {
     const t = new ThingToBuy();
     if (i === 0) {
         t.name = "Extend Time";
-    } else if (i === 1) {
-        t.name = "FREEZE";
     } else {
         t.name = "Thing " + (i + 1);
     }
@@ -102,79 +106,114 @@ export function show() {
     container = new Container();
     main.g_PixiApp.stage.addChild(container);
 
+    const bgSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./background@2x.png"]);
+    bgSprite.width *= main.g_CurrentScaleW;
+    bgSprite.height *= main.g_CurrentScaleH;
+    container.addChild(bgSprite);
+
+    // backing
+    const shopbgGFX = new Graphics();
+    container.addChild(shopbgGFX);
+
+    const BACKING_WIDTH = main.g_ScaledRendererWidth - 2 * main.GUMPH;
+    const BACKING_HEIGHT = main.g_ScaledRendererHeight - 4 * main.GUMPH;
+    const BACKING_X = main.g_HalfScaledRendererWidth;
+    const BACKING_Y = main.g_HalfScaledRendererHeight;
+    shopbgGFX.beginFill(0xcaf2a3);
+    shopbgGFX.lineStyle(5.0, 0x634130);
+    shopbgGFX.drawRoundedRect(
+        BACKING_X - 0.5 * BACKING_WIDTH,
+        BACKING_Y - 0.5 * BACKING_HEIGHT,
+        BACKING_WIDTH, BACKING_HEIGHT,
+        8);
+    shopbgGFX.endFill();
+
+    const titleText = new MultiStyleText("Shop", main.FONT_STYLES);
+    titleText.anchor.set(0.5);
+    titleText.x = main.g_HalfScaledRendererWidth;
+    titleText.y = BACKING_Y - 0.5 * BACKING_HEIGHT + main.GUMPH + 0.5 * titleText.height;
+    container.addChild(titleText);
+
+    // another backing
+    const shopboard = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./board_shop@2x.png"]);
+    shopboard.anchor.set(0.5);
+    shopboard.x = main.g_HalfScaledRendererWidth;
+    shopboard.y = titleText.y + 0.5 * titleText.height + main.GUMPH + 0.5 * shopboard.height;
+    container.addChild(shopboard);
+
+    // the thing
+    thingSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./item_timer@2x.png"]); // first one is on me
+    thingSprite.anchor.set(0.5);
+    thingSprite.x = main.g_HalfScaledRendererWidth;
+    thingSprite.y = shopboard.y - 0.5 * shopboard.height + main.GUMPH + 0.5 * thingSprite.height;
+    container.addChild(thingSprite);
+
+    // the name of the thing
+    thingName = new MultiStyleText("<medium>EMPTY</medium><smaller>\nBOUGHT x 0</smaller>", main.FONT_STYLES);
+    thingName.anchor.set(0.5);
+    thingName.x = main.g_HalfScaledRendererWidth;
+    thingName.y = thingSprite.y + 0.5 * thingSprite.height + main.GUMPH + 0.5 * thingName.height;
+    container.addChild(thingName);
+
+    // the coin and then the cost
+    thingCost = new Button("", main.FONT_STYLES);
+    const coinTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./ico_coin@2x.png"]);
+    thingCost.setSprite(coinTexture.baseTexture);
+    thingCost.setCenterPos(vec2.fromValues(
+        main.g_HalfScaledRendererWidth,
+        thingName.y + 0.5 * thingName.height + main.SMALL_GUMPH + 0.5 * coinTexture.height,
+    ));
+    thingCost.m_Text.x = thingCost.m_Sprite.x + 0.5 * thingCost.m_Sprite.width + main.SMALL_GUMPH +
+                         0.5 * thingCost.m_Text.width;
+    container.addChild(thingCost.m_Text);
+    container.addChild(thingCost.m_Sprite);
+
+    // left/right arrow
     buttonGraphics = new Graphics();
     container.addChild(buttonGraphics);
 
-    // the thing
-    thingButton = new Button("", null);
-    thingButton.setSize(vec2.fromValues(
-        0.5 * main.g_ScaledRendererWidth,
-        0.5 * main.g_ScaledRendererWidth,
-    ));
-    thingButton.setCenterPos(vec2.fromValues(
-        main.g_HalfScaledRendererWidth,
-        main.g_HalfScaledRendererHeight,
-    ));
-    thingButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0x888888, 0.95, buttonGraphics);
-    container.addChild(thingButton.m_Text);
-
-    // left/right arrow
-    leftButton = new Button("<", null);
-    leftButton.setSizeToText(main.GUMPH);
-    leftButton.setSize(vec2.fromValues(
-        leftButton.m_Size[0],
-        thingButton.m_Size[1],
-    ));
-    leftButton.setCenterPos(vec2.fromValues(
-        thingButton.getLeftX() - main.SMALL_GUMPH - leftButton.getHalfWidth(),
-        main.g_HalfScaledRendererHeight,
-    ));
-    leftButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0xFF00D7, 0.95, buttonGraphics);
-    container.addChild(leftButton.m_Text);
-
-    rightButton = new Button(">", null);
-    rightButton.setSizeToText(main.GUMPH);
-    rightButton.setSize(vec2.fromValues(
-        rightButton.m_Size[0],
-        thingButton.m_Size[1],
-    ));
-    rightButton.setCenterPos(vec2.fromValues(
-        thingButton.getRightX() + main.SMALL_GUMPH + rightButton.getHalfWidth(),
-        main.g_HalfScaledRendererHeight,
-    ));
-    rightButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0x00D7FF, 0.95, buttonGraphics);
-    container.addChild(rightButton.m_Text);
-
-    // buy button
-    buyButtonGfx = new Graphics();
-    container.addChild(buyButtonGfx);
-
-    buyButton = new Button("Buy", null);
-    buyButton.setSizeToText(main.GUMPH);
-    buyButton.setSize(vec2.fromValues(
-        thingButton.m_Size[0],
-        buyButton.m_Size[1],
-    ));
+    buyButton = new Button("Buy!", main.FONT_STYLES);
+    const buyTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./btn_buy@2x.png"]);
+    buyButton.setSprite(buyTexture.baseTexture);
+    buyButton.setSizeToSprite(0);
     buyButton.setCenterPos(vec2.fromValues(
         main.g_HalfScaledRendererWidth,
-        thingButton.getBottomY() + main.SMALL_GUMPH + buyButton.getHalfHeight(),
+        shopboard.y + 0.5 * shopboard.height + main.GUMPH + buyButton.getHalfHeight(),
     ));
-    buyButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0x00FFD7, 0.95, buyButtonGfx);
+    container.addChild(buyButton.m_Sprite);
     container.addChild(buyButton.m_Text);
 
-    backButton = new Button("Back", null);
-    backButton.setSizeToText(main.GUMPH);
-    backButton.setCenterPos(vec2.fromValues(
-        main.g_HalfScaledRendererWidth,
-        main.g_ScaledRendererHeight - main.GUMPH - backButton.getHalfHeight(),
+    leftButton = new Button("", null);
+    const leftTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./btn_left@2x.png"]);
+    leftButton.setSprite(leftTexture.baseTexture);
+    leftButton.setSizeToSprite(0);
+    leftButton.setCenterPos(vec2.fromValues(
+        buyButton.getLeftX() - main.SMALL_GUMPH - leftButton.getHalfWidth(),
+        buyButton.m_CenterPos[1],
     ));
-    backButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0xFF0000, 0.95, buttonGraphics);
-    container.addChild(backButton.m_Text);
+    leftButton.m_Sprite.visible = false;
+    container.addChild(leftButton.m_Sprite);
+
+    rightButton = new Button("", null);
+    const rightTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./btn_right@2x.png"]);
+    rightButton.setSprite(rightTexture.baseTexture);
+    rightButton.setSizeToSprite(0);
+    rightButton.setCenterPos(vec2.fromValues(
+        buyButton.getRightX() + main.SMALL_GUMPH + rightButton.getHalfWidth(),
+        buyButton.m_CenterPos[1],
+    ));
+    rightButton.m_Sprite.visible = thingsToBuy.length > 1;
+    container.addChild(rightButton.m_Sprite);
+
+    backButton = new Button("", null);
+    const backTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./btn_close@2x.png"]);
+    backButton.setSprite(backTexture.baseTexture);
+    backButton.setSizeToSprite(0);
+    backButton.setCenterPos(vec2.fromValues(
+        BACKING_X + 0.5 * BACKING_WIDTH,
+        BACKING_Y - 0.5 * BACKING_HEIGHT,
+    ));
+    container.addChild(backButton.m_Sprite);
 
     // this sets up all the per thing data
     setNewThing(0);
@@ -202,23 +241,24 @@ function setNewThing(newIndex: number) {
 }
 
 function updateText(t: ThingToBuy) {
-    thingButton.m_Text.text = t.name + "\n" +
-                              "Cost: " + t.costInCoins + " Coin" +
-                             (t.costInCoins > 1 ? "s" : "");
+    leftButton.m_Sprite.visible = currentThingIndex > 0;
+    rightButton.m_Sprite.visible = thingsToBuy.length - 1 > currentThingIndex;
 
-    buyButtonGfx.clear();
+    // the thing
+    thingSprite.texture = Texture.fromImage(t.texturefilepath);
+    thingCost.m_Text.text = t.costInCoins;
+    thingCost.m_Text.x = thingCost.m_Sprite.x + 0.5 * thingCost.m_Sprite.width + main.SMALL_GUMPH +
+                         0.5 * thingCost.m_Text.width;
+
+    thingName.text = "<medium>" + t.name + "</medium>";
     if (t.bought > 0) {
-        thingButton.m_Text.text += "\nBOUGHT! x " + t.bought;
+        thingName.text += "<smaller>\nBOUGHT x " + t.bought + "</smaller>";
     }
 
     if (t.costInCoins <= Game.coins) {
-        buyButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-            0x00FFD7, 0.95, buyButtonGfx);
         buyButton.m_Text.text = "Buy!";
     } else {
-        buyButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-            0x666666, 0.95, buyButtonGfx);
-        buyButton.m_Text.text = "Need More Coins!";
+        buyButton.m_Text.text = "<smaller>Need More\nCoins!</smaller>";
     }
 }
 

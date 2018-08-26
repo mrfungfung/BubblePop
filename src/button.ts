@@ -41,6 +41,13 @@ export class Button {
         this.m_Sprite.y = this.m_CenterPos[1];
     }
 
+    public scaleSprite(scale: vec2) {
+        if (this.m_Sprite) {
+            this.m_Sprite.width *= scale[0];
+            this.m_Sprite.height *= scale[1];
+        }
+    }
+
     public getHalfWidth() {
         return 0.5 * this.m_Size[0];
     }
@@ -68,11 +75,22 @@ export class Button {
             this.m_Size = vec2.fromValues(this.m_Text.width + border, this.m_Text.height + border);
         }
     }
+    public setSizeToSprite(border: number) {
+        if (this.m_Sprite) {
+            this.m_Size = vec2.fromValues(this.m_Sprite.width + border, this.m_Sprite.height + border);
+        }
+    }
     public setSize(size: vec2) {
         this.m_Size = vec2.fromValues(size[0], size[1]);
         if (this.m_Sprite) {
             this.m_Sprite.width = this.m_Size[0];
             this.m_Sprite.height = this.m_Size[1];
+        }
+    }
+    public setWidth(width: number) {
+        this.m_Size[0] = width;
+        if (this.m_Sprite) {
+            this.m_Sprite.width = this.m_Size[0];
         }
     }
     public setCenterPos(centerPos: vec2) {

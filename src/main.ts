@@ -1,5 +1,6 @@
-// bottage: (10 mins coins lol ready bonus) (after 3 days no play - FREE coin) (5 days no play? - FREE COIN reminder)
 // make it not look like shit
+// bottage: cron job - check all dates in context
+// bottage: (10 mins coins lol ready bonus) (after 3 days no play - FREE coin) (5 days no play? - FREE COIN reminder)
 // sound
 
 // monetization
@@ -12,7 +13,7 @@
 // refactor
 // - er make a player profile sigh what an idiot (level + coins, shop items)
 
-// ideas: amiga zombie clicker, plane challenger, fomo3d
+// ideas: plane challenger, amiga zombie clicker, fomo3d
 
 // future iap
 // -- gfx explosions
@@ -53,6 +54,8 @@ export let g_ScaledRendererWidth: number = 0;
 export let g_ScaledRendererHeight: number = 0;
 export let g_HalfScaledRendererWidth: number = 0;
 export let g_HalfScaledRendererHeight: number = 0;
+export let g_CurrentScaleW: number = 0;
+export let g_CurrentScaleH: number = 0;
 
 export let g_IsMobile = MSGlobal.G.mobilecheck();
 const g_FullScreen = true;
@@ -149,6 +152,37 @@ export function setGameState(g: EGameState) {
 
 export const GUMPH = 30;
 export const SMALL_GUMPH = 5;
+export const FONT_STYLES = {
+    bigger: {
+        align: "center",
+        fill: "0x634130",
+        fontFamily: "Arial",
+        fontSize: "40px",
+        fontWeight: "bold",
+    },
+    default: {
+        align: "center",
+        fill: "0x634130",
+        fontFamily: "Arial",
+        fontSize: "34px",
+        fontWeight: "bold",
+    },
+    medium: {
+        align: "center",
+        fill: "0x634130",
+        fontFamily: "Arial",
+        fontSize: "28px",
+        fontWeight: "bold",
+    },
+    smaller: {
+        align: "center",
+        fill: "0x634130",
+        fontFamily: "Arial",
+        fontSize: "16px",
+        fontWeight: "bold",
+    },
+};
+
 // *********************************************************
 
 // *********************************************************
@@ -208,9 +242,27 @@ window.onload = function() {
 
             // preload some resources
             const initial_resource_paths: any = {};
-            initial_resource_paths.BG = MSGlobal.ASSET_DIR["./bg.png"];
-            initial_resource_paths.MG = MSGlobal.ASSET_DIR["./mg.png"];
-            initial_resource_paths.FG = MSGlobal.ASSET_DIR["./fg.png"];
+            initial_resource_paths.BG = (MSGlobal.ASSET_DIR["./background@2x.png"]);
+            initial_resource_paths.cup = (MSGlobal.ASSET_DIR["./cup_full@2x.png"]);
+            initial_resource_paths.straw = (MSGlobal.ASSET_DIR["./straw@2x.png"]);
+            initial_resource_paths.tea_surface = (MSGlobal.ASSET_DIR["./tea_surface@2x.png"]);
+            initial_resource_paths.settings = (MSGlobal.ASSET_DIR["./btn_settings@2x.png"]);
+            initial_resource_paths.shop = (MSGlobal.ASSET_DIR["./btn_shop@2x.png"]);
+            initial_resource_paths.coin = (MSGlobal.ASSET_DIR["./ico_coin@2x.png"]);
+            initial_resource_paths.board_round = (MSGlobal.ASSET_DIR["./board_round-score@2x.png"]);
+
+            initial_resource_paths.bubble4 = (MSGlobal.ASSET_DIR["./smallbubble.png"]);
+            initial_resource_paths.bubble_active = (MSGlobal.ASSET_DIR["./bubble_active@2x.png"]);
+            initial_resource_paths.bubble_coin = (MSGlobal.ASSET_DIR["./bubble_coin@2x.png"]);
+            initial_resource_paths.bubble_inactive = (MSGlobal.ASSET_DIR["./bubble_inactive@2x.png"]);
+            initial_resource_paths.bubble_normal = (MSGlobal.ASSET_DIR["./bubble_normal@2x.png"]);
+
+            initial_resource_paths.shop_bg = (MSGlobal.ASSET_DIR["./board_shop@2x.png"]);
+            initial_resource_paths.close = (MSGlobal.ASSET_DIR["./btn_close@2x.png"]);
+            initial_resource_paths.time_extend = (MSGlobal.ASSET_DIR["./item_timer@2x.png"]);
+            initial_resource_paths.buybutton = (MSGlobal.ASSET_DIR["./btn_buy@2x.png"]);
+            initial_resource_paths.leftbutton = (MSGlobal.ASSET_DIR["./btn_left@2x.png"]);
+            initial_resource_paths.rightbutton = (MSGlobal.ASSET_DIR["./btn_right@2x.png"]);
 
             const loader = new loaders.Loader();
             for (const key in initial_resource_paths) {
@@ -225,6 +277,10 @@ window.onload = function() {
             }); // called once per loaded/errored file
 
             loader.load((ldr: any, resources: any) => {
+                g_CurrentScaleW = g_ScaledRendererWidth / resources.BG.texture.width;
+                g_CurrentScaleH = g_ScaledRendererHeight / resources.BG.texture.height;
+                MSGlobal.log("g_CurrentScaleW:" + g_CurrentScaleW);
+
                 MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("AssetsLoaded", null, null);
 
                 MSGlobal.log("calling startGameAsync");
@@ -291,8 +347,8 @@ function init() {
     g_PixiApp.stage.scale.y = ratio;
 
     const canvas_scale = Math.max(ratio, 1.0);
-    g_ScaledRendererWidth = (g_PixiApp.renderer.width / g_DevicePixelRatio) / canvas_scale;
-    g_ScaledRendererHeight = (g_PixiApp.renderer.height / g_DevicePixelRatio) / canvas_scale;
+    g_ScaledRendererWidth = ((g_PixiApp.renderer.width / g_DevicePixelRatio) / canvas_scale) + 1;
+    g_ScaledRendererHeight = ((g_PixiApp.renderer.height / g_DevicePixelRatio) / canvas_scale) + 1;
     g_HalfScaledRendererWidth = 0.5 * g_ScaledRendererWidth;
     g_HalfScaledRendererHeight = 0.5 * g_ScaledRendererHeight;
 
