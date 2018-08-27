@@ -174,6 +174,13 @@ export const FONT_STYLES = {
         fontSize: "28px",
         fontWeight: "bold",
     },
+    small: {
+        align: "center",
+        fill: "0x634130",
+        fontFamily: "Arial",
+        fontSize: "20px",
+        fontWeight: "bold",
+    },
     smaller: {
         align: "center",
         fill: "0x634130",
@@ -263,6 +270,13 @@ window.onload = function() {
             initial_resource_paths.buybutton = (MSGlobal.ASSET_DIR["./btn_buy@2x.png"]);
             initial_resource_paths.leftbutton = (MSGlobal.ASSET_DIR["./btn_left@2x.png"]);
             initial_resource_paths.rightbutton = (MSGlobal.ASSET_DIR["./btn_right@2x.png"]);
+
+            initial_resource_paths.settingsbg = (MSGlobal.ASSET_DIR["./settingsbgbutton.png"]);
+            initial_resource_paths.invitebutton = (MSGlobal.ASSET_DIR["./inviteButton.png"]);
+            initial_resource_paths.offbutton = (MSGlobal.ASSET_DIR["./offbutton.png"]);
+            initial_resource_paths.onbutton = (MSGlobal.ASSET_DIR["./onbutton.png"]);
+            initial_resource_paths.continue = (MSGlobal.ASSET_DIR["./btn_continue@2x.png"]);
+            initial_resource_paths.restart = (MSGlobal.ASSET_DIR["./btn_restart@2x.png"]);
 
             const loader = new loaders.Loader();
             for (const key in initial_resource_paths) {

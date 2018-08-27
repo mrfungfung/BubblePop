@@ -1,14 +1,19 @@
 import {vec2} from "gl-matrix";
-import {Container, Graphics} from "pixi.js";
+import {Container, Graphics, Texture} from "pixi.js";
 import { Button } from "./button";
 import * as MSGlobal from "./global";
 import * as main from "./main";
 
+// tslint:disable:no-var-requires
+const MultiStyleText = require("pixi-multistyle-text");
+// tslint:enable:no-var-requires
+
 // *********************************************************
 let container: Container = null;
-let buttonGraphics: Graphics = null;
 let sfxButton: Button = null;
+let sfxOnOffButton: Button = null;
 let bgmButton: Button = null;
+let bgmOnOffButton: Button = null;
 let inviteButton: Button = null;
 let backButton: Button = null;
 
@@ -59,57 +64,113 @@ export function show() {
     container = new Container();
     main.g_PixiApp.stage.addChild(container);
 
-    buttonGraphics = new Graphics();
-    container.addChild(buttonGraphics);
+    const bgSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./background@2x.png"]);
+    bgSprite.width *= main.g_CurrentScaleW;
+    bgSprite.height *= main.g_CurrentScaleH;
+    container.addChild(bgSprite);
 
-    buttonGraphics.beginFill(0xFFD700);
-    buttonGraphics.drawRoundedRect(
-        main.GUMPH,
-        main.GUMPH,
-        main.g_ScaledRendererWidth - 2 * main.GUMPH,
-        main.g_ScaledRendererHeight - 2 * main.GUMPH,
+    // backing
+    const optionsGFX = new Graphics();
+    container.addChild(optionsGFX);
+
+    const BACKING_WIDTH = main.g_ScaledRendererWidth - 2 * main.GUMPH;
+    const BACKING_HEIGHT = main.g_ScaledRendererHeight - 4 * main.GUMPH;
+    const BACKING_X = main.g_HalfScaledRendererWidth;
+    const BACKING_Y = main.g_HalfScaledRendererHeight;
+    optionsGFX.beginFill(0xe3f9ff);
+    optionsGFX.lineStyle(5.0, 0x634130);
+    optionsGFX.drawRoundedRect(
+        BACKING_X - 0.5 * BACKING_WIDTH,
+        BACKING_Y - 0.5 * BACKING_HEIGHT,
+        BACKING_WIDTH, BACKING_HEIGHT,
         8);
-    buttonGraphics.endFill();
+    optionsGFX.endFill();
 
-    sfxButton = new Button("SFX: " + sfx, null);
-    sfxButton.setSizeToText(main.GUMPH);
+    // sfx
+    const sfxText = new MultiStyleText("Sound Effects", main.FONT_STYLES);
+    sfxText.anchor.set(0.5);
+    sfxText.x = main.g_HalfScaledRendererWidth;
+    sfxText.y = BACKING_Y - 0.5 * BACKING_HEIGHT + 2 * main.GUMPH + 0.5 * sfxText.height;
+    container.addChild(sfxText);
+
+    sfxButton = new Button("", null);
+    const buttonbgTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./settingsbgbutton.png"]);
+    sfxButton.setSprite(buttonbgTexture.baseTexture);
+    sfxButton.setSizeToSprite(0);
     sfxButton.setCenterPos(vec2.fromValues(
         main.g_HalfScaledRendererWidth,
-        main.g_HalfScaledRendererHeight,
+        sfxText.y + 0.5 * sfxText.height + main.GUMPH + 0.5 * sfxButton.getHalfHeight(),
     ));
-    sfxButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0x007acf, 0.95, buttonGraphics);
-    container.addChild(sfxButton.m_Text);
+    container.addChild(sfxButton.m_Sprite);
 
-    bgmButton = new Button("BGM: " + bgm, null);
-    bgmButton.setSizeToText(main.GUMPH);
+    sfxOnOffButton = new Button(sfx ? "ON" : "OFF", main.FONT_STYLES);
+    const onbuttonbgTexture = Texture.fromImage(
+        MSGlobal.ASSET_DIR[sfx ? "./onbutton.png" : "./offbutton.png"]);
+    sfxOnOffButton.setSprite(onbuttonbgTexture.baseTexture);
+    sfxOnOffButton.setSizeToSprite(0);
+    sfxOnOffButton.setCenterPos(vec2.fromValues(
+        main.g_HalfScaledRendererWidth +
+            (sfx ? -sfxOnOffButton.getHalfWidth() : sfxOnOffButton.getHalfWidth()),
+        sfxButton.m_CenterPos[1],
+    ));
+    container.addChild(sfxOnOffButton.m_Sprite);
+    container.addChild(sfxOnOffButton.m_Text);
+
+    // bgm
+    const bgmText = new MultiStyleText("Music", main.FONT_STYLES);
+    bgmText.anchor.set(0.5);
+    bgmText.x = main.g_HalfScaledRendererWidth;
+    bgmText.y = sfxButton.getBottomY() + main.GUMPH + 0.5 * bgmText.height;
+    container.addChild(bgmText);
+
+    bgmButton = new Button("", null);
+    bgmButton.setSprite(buttonbgTexture.baseTexture);
+    bgmButton.setSizeToSprite(0);
     bgmButton.setCenterPos(vec2.fromValues(
         main.g_HalfScaledRendererWidth,
-        sfxButton.getBottomY() + main.GUMPH + bgmButton.getHalfHeight(),
+        bgmText.y + 0.5 * bgmText.height + main.GUMPH + 0.5 * bgmButton.getHalfHeight(),
     ));
-    bgmButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0x007acf, 0.95, buttonGraphics);
-    container.addChild(bgmButton.m_Text);
+    container.addChild(bgmButton.m_Sprite);
 
-    inviteButton = new Button("Invite", null);
-    inviteButton.setSizeToText(main.GUMPH);
+    bgmOnOffButton = new Button(bgm ? "ON" : "OFF", main.FONT_STYLES);
+    const bgmonbuttonbgTexture = Texture.fromImage(
+        MSGlobal.ASSET_DIR[bgm ? "./onbutton.png" : "./offbutton.png"]);
+    bgmOnOffButton.setSprite(bgmonbuttonbgTexture.baseTexture);
+    bgmOnOffButton.setSizeToSprite(0);
+    bgmOnOffButton.setCenterPos(vec2.fromValues(
+        main.g_HalfScaledRendererWidth +
+            (bgm ? -bgmOnOffButton.getHalfWidth() : bgmOnOffButton.getHalfWidth()),
+        bgmButton.m_CenterPos[1],
+    ));
+    container.addChild(bgmOnOffButton.m_Sprite);
+    container.addChild(bgmOnOffButton.m_Text);
+
+    // invite
+    const inviteText = new MultiStyleText("Invite", main.FONT_STYLES);
+    inviteText.anchor.set(0.5);
+    inviteText.x = main.g_HalfScaledRendererWidth;
+    inviteText.y = bgmButton.getBottomY() + main.GUMPH + 0.5 * inviteText.height;
+    container.addChild(inviteText);
+
+    inviteButton = new Button("", null);
+    const inviteTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./inviteButton.png"]);
+    inviteButton.setSprite(inviteTexture.baseTexture);
+    inviteButton.setSizeToSprite(0);
     inviteButton.setCenterPos(vec2.fromValues(
         main.g_HalfScaledRendererWidth,
-        bgmButton.getBottomY() + main.GUMPH + inviteButton.getHalfHeight(),
+        inviteText.y + 0.5 * inviteText.height + main.GUMPH + 0.5 * inviteButton.getHalfHeight(),
     ));
-    inviteButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0x007acf, 0.95, buttonGraphics);
-    container.addChild(inviteButton.m_Text);
+    container.addChild(inviteButton.m_Sprite);
 
-    backButton = new Button("Back", null);
-    backButton.setSizeToText(main.GUMPH);
+    backButton = new Button("", null);
+    const backTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./btn_close@2x.png"]);
+    backButton.setSprite(backTexture.baseTexture);
+    backButton.setSizeToSprite(0);
     backButton.setCenterPos(vec2.fromValues(
-        main.g_HalfScaledRendererWidth,
-        main.g_ScaledRendererHeight - main.GUMPH - 0.5 * backButton.m_Size[1],
+        BACKING_X + 0.5 * BACKING_WIDTH,
+        BACKING_Y - 0.5 * BACKING_HEIGHT,
     ));
-    backButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0x007acf, 0.95, buttonGraphics);
-    container.addChild(backButton.m_Text);
+    container.addChild(backButton.m_Sprite);
 }
 
 export function hide() {
@@ -134,11 +195,25 @@ export function processInput(clicked: boolean,
             return true;
         } else if (sfxButton.contains(vec2.fromValues(screenX, screenY))) {
             sfx = !sfx;
-            sfxButton.m_Text.text = "SFX: " + sfx;
+            sfxOnOffButton.m_Text.text = (sfx ? "ON" : "OFF");
+            const onbuttonbgTexture = Texture.fromImage(
+                MSGlobal.ASSET_DIR[sfx ? "./onbutton.png" : "./offbutton.png"]);
+            sfxOnOffButton.m_Sprite.texture = onbuttonbgTexture;
+            sfxOnOffButton.setCenterPos(vec2.fromValues(
+                main.g_HalfScaledRendererWidth +
+                    (sfx ? -sfxOnOffButton.getHalfWidth() : sfxOnOffButton.getHalfWidth()),
+                sfxOnOffButton.m_CenterPos[1]));
             save();
         } else if (bgmButton.contains(vec2.fromValues(screenX, screenY))) {
             bgm = !bgm;
-            bgmButton.m_Text.text = "BGM: " + bgm;
+            bgmOnOffButton.m_Text.text = (bgm ? "ON" : "OFF");
+            const onbuttonbgTexture = Texture.fromImage(
+                MSGlobal.ASSET_DIR[bgm ? "./onbutton.png" : "./offbutton.png"]);
+            bgmOnOffButton.m_Sprite.texture = onbuttonbgTexture;
+            bgmOnOffButton.setCenterPos(vec2.fromValues(
+                main.g_HalfScaledRendererWidth +
+                    (bgm ? -bgmOnOffButton.getHalfWidth() : bgmOnOffButton.getHalfWidth()),
+                bgmOnOffButton.m_CenterPos[1]));
             save();
         } else if (inviteButton.contains(vec2.fromValues(screenX, screenY))) {
             MSGlobal.PlatformInterface.chooseAsync()

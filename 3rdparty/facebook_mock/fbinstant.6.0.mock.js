@@ -327,7 +327,7 @@ var FBInstant = {
                 },
                 getEntriesAsync: function(count, offset) {
                     entries = [];
-                    for (var i=offset; i<10 && i<count; ++i) {
+                    for (var i=offset; i<10 && i<count+offset; ++i) {
                         entries.push(Utils.createLeaderboardEntry(
                             42 + i, 
                             i + 1, 

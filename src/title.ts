@@ -12,6 +12,7 @@ import * as Options from "./options";
 let titleContainer: Container = null;
 let buttonGraphics: Graphics = null;
 let playButton: Button = null;
+let startButton: Button = null;
 let shopButton: Button = null;
 let optionsButton: Button = null;
 
@@ -77,15 +78,32 @@ export function show() {
     buttonGraphics = new Graphics();
     titleContainer.addChild(buttonGraphics);
 
-    playButton = new Button("Play Bubble Frenzy! ", null);
-    playButton.setSizeToText(main.GUMPH);
+    const bgTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./board_round-score@2x.png"]);
+    const bgTextureSprite = Sprite.from(bgTexture.baseTexture);
+    bgTextureSprite.anchor.set(0.5);
+    bgTextureSprite.x = main.g_HalfScaledRendererWidth;
+    bgTextureSprite.y = main.g_HalfScaledRendererHeight;
+    titleContainer.addChild(bgTextureSprite);
+
+    playButton = new Button("<medium>Bubble Frenzy!</medium>", main.FONT_STYLES);
+    playButton.setSizeToText(0);
     playButton.setCenterPos(vec2.fromValues(
         main.g_HalfScaledRendererWidth,
-        main.g_HalfScaledRendererHeight,
+        bgTextureSprite.y - 0.5 * bgTextureSprite.height + main.GUMPH
+        + playButton.getHalfHeight(),
     ));
-    playButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0x007acf, 0.95, buttonGraphics);
     titleContainer.addChild(playButton.m_Text);
+
+    startButton = new Button("<medium>Start</medium>", main.FONT_STYLES);
+    const goTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./onbutton.png"]);
+    startButton.setSprite(goTexture.baseTexture);
+    startButton.setSizeToSprite(0);
+    startButton.setCenterPos(vec2.fromValues(
+        main.g_HalfScaledRendererWidth,
+        playButton.getBottomY() + main.SMALL_GUMPH + startButton.getHalfHeight(),
+    ));
+    titleContainer.addChild(startButton.m_Sprite);
+    titleContainer.addChild(startButton.m_Text);
 
     optionsButton = new Button("", null);
     const settingsTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./btn_settings@2x.png"]);
@@ -134,6 +152,9 @@ export function processBG(theStraw: Sprite, theCup: Sprite, theTeaSurface: Sprit
 }
 export function process() {
     processBG(straw, cup, teaSurface);
+    if (!Options.isOnShow() && !CoinShop.isOnShow() && !CoinsButton.isOnShow()) {
+        CoinsButton.show();
+    }
     CoinsButton.updateCoinsButton();
 }
 
@@ -156,7 +177,8 @@ export function processInput(clicked: boolean,
         }
     } else {
         if (clicked) {
-            if (playButton.contains(vec2.fromValues(screenX, screenY))) {
+            if (playButton.contains(vec2.fromValues(screenX, screenY)) ||
+                startButton.contains(vec2.fromValues(screenX, screenY))) {
                 Game.resetGame();
                 main.setGameState(main.EGameState.EGAMESTATE_IN_GAME);
             } else if (optionsButton.contains(vec2.fromValues(screenX, screenY))) {

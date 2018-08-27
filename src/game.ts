@@ -27,7 +27,6 @@ let confirmModalContainer: Container = null;
 let confirmModalGraphics: Graphics = null;
 let confirmYesButton: Button = null;
 let confirmNoButton: Button = null;
-let confirmTextButton: Button = null;
 
 // *********************************************************
 let topUIContainer: Container = null;
@@ -403,7 +402,7 @@ function initNewBubbles() {
         // find a target pos
         if (c.isCoin || level >= MIN_LEVEL_FOR_MOVING) {
             if (c.isCoin) {
-                c.speed = 5.0;
+                c.speed = 3.0;
             } else {
                 c.speed = 1.0 + (level - MIN_LEVEL_FOR_MOVING) * 0.2;
             }
@@ -700,54 +699,53 @@ function showConfirmModal() {
     confirmModalGraphics = new Graphics();
     confirmModalContainer.addChild(confirmModalGraphics);
 
-    const BACKING_HEIGHT = main.g_HalfScaledRendererHeight;
-    confirmModalGraphics.beginFill(0x00D700);
-    confirmModalGraphics.drawRoundedRect(
-        main.GUMPH,
-        main.g_HalfScaledRendererHeight - 0.5 * BACKING_HEIGHT,
-        main.g_ScaledRendererWidth - 2 * main.GUMPH,
-        BACKING_HEIGHT,
-        8);
-    confirmModalGraphics.endFill();
+    const fade = new Graphics();
+    fade.beginFill(0x0, 0.65);
+    fade.drawRect(0, 0, main.g_ScaledRendererWidth, main.g_ScaledRendererHeight);
+    fade.endFill();
+    confirmModalContainer.addChild(fade);
 
-    confirmTextButton = new Button("Use Time Extend?\nNumber Left: " + CoinShop.thingsToBuy[0].bought, null);
-    confirmTextButton.setSizeToText(main.GUMPH);
-    confirmTextButton.setCenterPos(vec2.fromValues(
-        main.g_HalfScaledRendererWidth,
-        main.g_HalfScaledRendererHeight - 0.5 * BACKING_HEIGHT
-        + main.GUMPH
-        + confirmTextButton.getHalfHeight(),
-    ));
-    confirmTextButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0x00cf7a, 0.95, confirmModalGraphics);
-    confirmModalGraphics.addChild(confirmTextButton.m_Text);
+    const bgsprite = Sprite.from(MSGlobal.ASSET_DIR["./board_shop@2x.png"]);
+    bgsprite.anchor.set(0.5);
+    bgsprite.x = main.g_HalfScaledRendererWidth;
+    bgsprite.y = main.g_HalfScaledRendererHeight;
+    confirmModalContainer.addChild(bgsprite);
 
-    confirmYesButton = new Button("YES", null);
-    confirmYesButton.setSizeToText(main.GUMPH);
-    confirmYesButton.setCenterPos(vec2.fromValues(
-        main.g_HalfScaledRendererWidth,
-        confirmYesButton.getYBelowOtherButtonWithGap(confirmTextButton, main.GUMPH),
-    ));
-    confirmYesButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0x7acf7a, 0.95, confirmModalGraphics);
-    confirmModalGraphics.addChild(confirmYesButton.m_Text);
+    const titleText = new MultiStyleText(
+        "<medium>Use Time Extend?\nNumber Left: " + CoinShop.thingsToBuy[0].bought + "</medium>",
+        main.FONT_STYLES);
+    titleText.anchor.set(0.5);
+    titleText.x = main.g_HalfScaledRendererWidth;
+    titleText.y = bgsprite.y - 0.5 * bgsprite.height + 2 * main.GUMPH + 0.5 * titleText.height;
+    confirmModalContainer.addChild(titleText);
 
-    confirmNoButton = new Button("NO", null);
-    confirmNoButton.setSizeToText(main.GUMPH);
+    confirmNoButton = new Button("NO", main.FONT_STYLES);
+    const no = Texture.fromImage(MSGlobal.ASSET_DIR["./offbutton.png"]);
+    confirmNoButton.setSprite(no.baseTexture);
+    confirmNoButton.setSizeToSprite(0);
     confirmNoButton.setCenterPos(vec2.fromValues(
         main.g_HalfScaledRendererWidth,
-        confirmNoButton.getYBelowOtherButtonWithGap(confirmYesButton, main.GUMPH),
+        bgsprite.y + 0.5 * bgsprite.height - main.GUMPH - confirmNoButton.getHalfHeight(),
     ));
-    confirmNoButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0x7a0000, 0.95, confirmModalGraphics);
-    confirmModalGraphics.addChild(confirmNoButton.m_Text);
+    confirmModalContainer.addChild(confirmNoButton.m_Sprite);
+    confirmModalContainer.addChild(confirmNoButton.m_Text);
+
+    confirmYesButton = new Button("YES", main.FONT_STYLES);
+    const yes = Texture.fromImage(MSGlobal.ASSET_DIR["./onbutton.png"]);
+    confirmYesButton.setSprite(yes.baseTexture);
+    confirmYesButton.setSizeToSprite(0);
+    confirmYesButton.setCenterPos(vec2.fromValues(
+        main.g_HalfScaledRendererWidth,
+        confirmNoButton.getTopY() - main.GUMPH - confirmYesButton.getHalfHeight(),
+    ));
+    confirmModalContainer.addChild(confirmYesButton.m_Sprite);
+    confirmModalContainer.addChild(confirmYesButton.m_Text);
 }
 
 // *******************************************************************************************************
 function hideConfirmModal() {
     main.g_PixiApp.stage.removeChild(confirmModalContainer);
     confirmModalContainer = null;
-    confirmTextButton = null;
     confirmYesButton = null;
     confirmNoButton = null;
 }

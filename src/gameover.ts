@@ -1,5 +1,5 @@
 import {vec2} from "gl-matrix";
-import {Container, Graphics} from "pixi.js";
+import {Container, Graphics, Texture} from "pixi.js";
 import * as AdsManager from "./adsmanager";
 import { Button } from "./button";
 import * as CoinsButton from "./coinsbutton";
@@ -20,14 +20,18 @@ declare var process: any;
 let gameOverPopUpContainer: Container = null;
 let gameOverShowStartMS: number = 0;
 let gameOverT: number = 1.0;
+let gameOverButton: Button = null;
+const TIME_FOR_GAME_OVER_SECS = 1.5;
+let BACKING_WIDTH = 0;
+let BACKING_HEIGHT = 0;
+let BACKING_X = 0;
+let BACKING_Y = 0;
 
 // *********************************************************
 let container: Container = null;
 let leaderboardContainer: Container = null;
 let buttonGraphics: Graphics = null;
 let restartButton: Button = null;
-let lastScoreButton: Button = null;
-let hiScoreButton: Button = null;
 let playWithFriendsButton: Button = null;
 let optionsButton: Button = null;
 let shopButton: Button = null;
@@ -41,7 +45,7 @@ let isHiScore = false;
 let levelReached = 0;
 let continueCount = 0;
 
-const MAX_ENTRIES = 5;
+const MAX_ENTRIES = 3;
 const PROFILE_PIC_DIM = 48;
 
 export function initialise(lastscore: number, ishighscore: boolean, levelreached: number) {
@@ -60,33 +64,22 @@ export function show() {
     gameOverT = 1.0;
     gameOverPopUpContainer = new Container();
     main.g_PixiApp.stage.addChild(gameOverPopUpContainer);
-    const gameOverGfx = new Graphics();
-    gameOverPopUpContainer.addChild(gameOverGfx);
 
-    const BACKING_HEIGHT = main.g_ScaledRendererHeight - 2 * main.GUMPH;
-    gameOverGfx.beginFill(0xFFD700);
-    gameOverGfx.drawRoundedRect(
-        main.GUMPH,
-        main.g_HalfScaledRendererHeight - 0.5 * BACKING_HEIGHT,
-        main.g_ScaledRendererWidth - 2 * main.GUMPH,
-        BACKING_HEIGHT,
-        8);
-    gameOverGfx.endFill();
+    const bgSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./background@2x.png"]);
+    bgSprite.width *= main.g_CurrentScaleW;
+    bgSprite.height *= main.g_CurrentScaleH;
+    gameOverPopUpContainer.addChild(bgSprite);
 
-    const gameOverText = new MultiStyleText("Game Over\nOut Of Time!", {
-        default: {
-            align: "center",
-            fill: "0xFFFFFF",
-            fontSize: "20px",
-            lineJoin: "round",
-            stroke: "0x0",
-            strokeThickness: "4",
-        },
-    });
-    gameOverText.anchor.set(0.5);
-    gameOverText.x = main.g_HalfScaledRendererWidth;
-    gameOverText.y = main.g_HalfScaledRendererHeight;
-    gameOverPopUpContainer.addChild(gameOverText);
+    gameOverButton = new Button("Game Over\nOut Of Time!", main.FONT_STYLES);
+    const bgTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./board_round-score@2x.png"]);
+    gameOverButton.setSprite(bgTexture.baseTexture);
+    gameOverButton.setSizeToSprite(0);
+    gameOverButton.setCenterPos(vec2.fromValues(
+        main.g_HalfScaledRendererWidth,
+        main.g_HalfScaledRendererHeight,
+    ));
+    gameOverPopUpContainer.addChild(gameOverButton.m_Sprite);
+    gameOverPopUpContainer.addChild(gameOverButton.m_Text);
 
     createEverything();
 
@@ -117,106 +110,137 @@ function createEverything() {
     buttonGraphics = new Graphics();
     container.addChild(buttonGraphics);
 
-    hiScoreButton = new Button("Hi Score: " + Game.hiscore, null);
-    hiScoreButton.setSizeToText(main.GUMPH);
-    hiScoreButton.setCenterPos(vec2.fromValues(
-        main.g_HalfScaledRendererWidth,
-        main.GUMPH + hiScoreButton.getHalfHeight(),
-    ));
-    hiScoreButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0xcd007a, 0.95, buttonGraphics);
-    container.addChild(hiScoreButton.m_Text);
+    const bgSprite = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./background@2x.png"]);
+    bgSprite.width *= main.g_CurrentScaleW;
+    bgSprite.height *= main.g_CurrentScaleH;
+    container.addChild(bgSprite);
 
-    lastScoreButton = new Button(
-        (isHiScore ? "New Hi Score! " : "Score: " ) + lastScore, null);
-    lastScoreButton.setSizeToText(main.GUMPH);
-    lastScoreButton.setCenterPos(vec2.fromValues(
-        main.g_HalfScaledRendererWidth,
-        hiScoreButton.getBottomY()
-        + main.SMALL_GUMPH + lastScoreButton.getHalfHeight(),
-    ));
-    lastScoreButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        (isHiScore ? 0xcd007a : 0x888888), 0.95, buttonGraphics);
-    container.addChild(lastScoreButton.m_Text);
+    // backing
+    const optionsGFX = new Graphics();
+    container.addChild(optionsGFX);
 
-    let lastbutton = lastScoreButton;
+    BACKING_WIDTH = main.g_ScaledRendererWidth - 2 * main.GUMPH;
+    BACKING_HEIGHT = main.g_ScaledRendererHeight - 4 * main.GUMPH;
+    BACKING_X = main.g_HalfScaledRendererWidth;
+    BACKING_Y = main.GUMPH + 0.5 * BACKING_HEIGHT;
+    optionsGFX.beginFill(0xcaf2a3);
+    optionsGFX.lineStyle(5.0, 0x634130);
+    optionsGFX.drawRoundedRect(
+        BACKING_X - 0.5 * BACKING_WIDTH,
+        BACKING_Y - 0.5 * BACKING_HEIGHT,
+        BACKING_WIDTH, BACKING_HEIGHT,
+        8);
+    optionsGFX.endFill();
+
+    // another backing
+    const hiboard = PIXI.Sprite.fromImage(MSGlobal.ASSET_DIR["./board_round-score@2x.png"]);
+    hiboard.anchor.set(0.5);
+    hiboard.x = main.g_HalfScaledRendererWidth;
+    hiboard.y = BACKING_Y - 0.5 * BACKING_HEIGHT + main.SMALL_GUMPH + 0.5 * hiboard.height;
+    container.addChild(hiboard);
+
+    // title text
+    const titleText = new MultiStyleText("Final Score", main.FONT_STYLES);
+    titleText.anchor.set(0.5);
+    titleText.x = main.g_HalfScaledRendererWidth;
+    titleText.y = hiboard.y - 0.5 * hiboard.height + main.SMALL_GUMPH + 0.5 * titleText.height;
+    container.addChild(titleText);
+
+    // last score
+    const lastScoreText = new MultiStyleText("<bigger>" + lastScore + "</bigger>", main.FONT_STYLES);
+    lastScoreText.anchor.set(0.5);
+    lastScoreText.x = main.g_HalfScaledRendererWidth;
+    lastScoreText.y = titleText.y + 0.5 * titleText.height + main.SMALL_GUMPH + 0.5 * lastScoreText.height;
+    container.addChild(lastScoreText);
+
+    // hi score
+    const hiScoreText = new MultiStyleText(
+        "<small>" + (isHiScore ? "New " : "") + "Hi Score: " + Game.hiscore + "</small>",
+        main.FONT_STYLES);
+    hiScoreText.anchor.set(0.5);
+    hiScoreText.x = main.g_HalfScaledRendererWidth;
+    hiScoreText.y = lastScoreText.y + 0.5 * lastScoreText.height + main.SMALL_GUMPH + 0.5 * hiScoreText.height;
+    container.addChild(hiScoreText);
+
+    let lastBottomY = hiboard.y + 0.5 * hiboard.height;
     continueWithAdsButton = null;
     continueWithInviteButton = null;
     playWithFriendsButton = null;
 
-    if (continueCount === 0 && isHiScore) {
+    const continueTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./btn_continue@2x.png"]);
+    if (continueCount === 0) {
+
         if (MSGlobal.PlatformInterface.canShowAds(EAdType.EADTYPE_INTERSTITIAL)) {
-            continueWithAdsButton = new Button("Continue! Watch Ad", null);
-            continueWithAdsButton.setSizeToText(main.GUMPH);
+            continueWithAdsButton = new Button("<small>Continue\nWatch Video</small>", main.FONT_STYLES);
+            continueWithAdsButton.setSprite(continueTexture.baseTexture);
+            continueWithAdsButton.setSizeToSprite(0);
             continueWithAdsButton.setCenterPos(vec2.fromValues(
                 main.g_HalfScaledRendererWidth,
-                lastbutton.getBottomY()
-                + main.SMALL_GUMPH + continueWithAdsButton.getHalfHeight(),
+                lastBottomY + main.SMALL_GUMPH + continueWithAdsButton.getHalfHeight(),
             ));
-            continueWithAdsButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-                0xFF7acf, 0.95, buttonGraphics);
+            container.addChild(continueWithAdsButton.m_Sprite);
             container.addChild(continueWithAdsButton.m_Text);
 
-            lastbutton = continueWithAdsButton;
+            lastBottomY = continueWithAdsButton.getBottomY();
         }
 
-        continueWithInviteButton = new Button("Continue! Play With Friends", null);
-        continueWithInviteButton.setSizeToText(main.GUMPH);
+        continueWithInviteButton = new Button("<small>Continue\nInvite Friends</small>", main.FONT_STYLES);
+        continueWithInviteButton.setSprite(continueTexture.baseTexture);
+        continueWithInviteButton.setSizeToSprite(0);
         continueWithInviteButton.setCenterPos(vec2.fromValues(
             main.g_HalfScaledRendererWidth,
-            lastbutton.getBottomY()
-            + main.SMALL_GUMPH + continueWithInviteButton.getHalfHeight(),
+            lastBottomY + main.SMALL_GUMPH + continueWithInviteButton.getHalfHeight(),
         ));
-        continueWithInviteButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-            0xFF7acf, 0.95, buttonGraphics);
+        container.addChild(continueWithInviteButton.m_Sprite);
         container.addChild(continueWithInviteButton.m_Text);
 
-        lastbutton = continueWithInviteButton;
+        lastBottomY = continueWithInviteButton.getBottomY();
     } else {
-        playWithFriendsButton = new Button("Play With Friends", null);
-        playWithFriendsButton.setSizeToText(main.GUMPH);
+        playWithFriendsButton = new Button("<small>Play With Friends</small>", main.FONT_STYLES);
+        playWithFriendsButton.setSprite(continueTexture.baseTexture);
+        playWithFriendsButton.setSizeToSprite(0);
         playWithFriendsButton.setCenterPos(vec2.fromValues(
             main.g_HalfScaledRendererWidth,
-            lastScoreButton.getBottomY()
-            + main.SMALL_GUMPH + playWithFriendsButton.getHalfHeight(),
+            lastBottomY + main.SMALL_GUMPH + playWithFriendsButton.getHalfHeight(),
         ));
-        playWithFriendsButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-            0xFF7acf, 0.95, buttonGraphics);
+        container.addChild(playWithFriendsButton.m_Sprite);
         container.addChild(playWithFriendsButton.m_Text);
 
-        lastbutton = playWithFriendsButton;
+        lastBottomY = playWithFriendsButton.getBottomY();
     }
 
-    restartButton = new Button("Restart", null);
-    restartButton.setSizeToText(main.GUMPH);
+    restartButton = new Button("<small>Restart</small>", main.FONT_STYLES);
+    const restartTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./btn_restart@2x.png"]);
+    restartButton.setSprite(restartTexture.baseTexture);
+    restartButton.setSizeToSprite(0);
     restartButton.setCenterPos(vec2.fromValues(
         main.g_HalfScaledRendererWidth,
-        lastbutton.getBottomY()
-        + main.SMALL_GUMPH + restartButton.getHalfHeight(),
+        lastBottomY + main.SMALL_GUMPH + restartButton.getHalfHeight(),
     ));
-    restartButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0x007acf, 0.95, buttonGraphics);
+    container.addChild(restartButton.m_Sprite);
     container.addChild(restartButton.m_Text);
 
-    optionsButton = new Button("O", null);
-    optionsButton.setSizeToText(main.GUMPH);
+    optionsButton = new Button("", null);
+    const settingsTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./btn_settings@2x.png"]);
+    optionsButton.setSprite(settingsTexture.baseTexture);
+    optionsButton.scaleSprite(vec2.fromValues(main.g_CurrentScaleW, main.g_CurrentScaleH));
+    optionsButton.setSizeToSprite(0);
     optionsButton.setCenterPos(vec2.fromValues(
-        main.g_ScaledRendererWidth - 0.5 * optionsButton.m_Size[0],
-        main.g_ScaledRendererHeight - 0.5 * optionsButton.m_Size[1],
+        main.g_ScaledRendererWidth - main.SMALL_GUMPH - optionsButton.getHalfWidth(),
+        main.g_ScaledRendererHeight - main.SMALL_GUMPH - optionsButton.getHalfHeight(),
     ));
-    optionsButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0xff0000, 0.95, buttonGraphics);
-    container.addChild(optionsButton.m_Text);
+    container.addChild(optionsButton.m_Sprite);
 
-    shopButton = new Button("Shop", null);
-    shopButton.setSizeToText(main.GUMPH);
+    shopButton = new Button("", null);
+    const shopTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./btn_shop@2x.png"]);
+    shopButton.setSprite(shopTexture.baseTexture);
+    shopButton.scaleSprite(vec2.fromValues(main.g_CurrentScaleW, main.g_CurrentScaleH));
+    shopButton.setSizeToSprite(0);
     shopButton.setCenterPos(vec2.fromValues(
-        optionsButton.getLeftX() - main.GUMPH - shopButton.getHalfWidth(),
-        main.g_ScaledRendererHeight - 0.5 * shopButton.m_Size[1],
+        optionsButton.getLeftX() - main.SMALL_GUMPH - shopButton.getHalfWidth(),
+        main.g_ScaledRendererHeight - main.SMALL_GUMPH - shopButton.getHalfHeight(),
     ));
-    shopButton.renderBackingIntoGraphicsWithBorder(0xFFFFFF, 1.0, 8,
-        0xFFD700, 0.95, buttonGraphics);
-    container.addChild(shopButton.m_Text);
+    container.addChild(shopButton.m_Sprite);
 
     // create the leaderboard
     createLeaderBoardUI();
@@ -268,12 +292,12 @@ function getHiScores() {
             leaderboard.getPlayerEntryAsync().then(function(playerEntry: ILeaderboardEntry) {
                 if (playerEntry) {
                     const offset = Math.max(0, playerEntry.getRank() - Math.floor(MAX_ENTRIES / 2));
-                    return createEntries(leaderboard, 10, offset);
+                    return createEntries(leaderboard, MAX_ENTRIES, offset);
                 } else {
-                    return createEntries(leaderboard, 10, 0);
+                    return createEntries(leaderboard, MAX_ENTRIES, 0);
                 }
             }).catch(function(error: any) {
-                return createEntries(leaderboard, 10, 0);
+                return createEntries(leaderboard, MAX_ENTRIES, 0);
             });
         });
     }
@@ -291,12 +315,13 @@ function createEntries(leaderboard: ILeaderboard, count: number, offset: number)
         leaderboardContainer.addChild(entryPicBackingGfx);
         leaderboardContainer.addChild(entryOutline);
         leaderboardContainer.addChild(playerEntryOutline);
-        entryPicBackingGfx.beginFill(0x0, 0.75);
-        entryOutline.beginFill(0xaaaaff, 0.75);
-        playerEntryOutline.beginFill(0xFF0000, 0.75);
+        entryPicBackingGfx.beginFill(0x634130);
+        entryOutline.beginFill(0xfbf9df);
+        playerEntryOutline.beginFill(0xffbdbb);
 
         const TOP_Y = restartButton.getBottomY() + main.GUMPH;
-        const LEFT_WITH_MARGIN = main.GUMPH;
+        const LEFT = BACKING_X - 0.5 * BACKING_WIDTH;
+        const LEFT_WITH_MARGIN = LEFT + main.SMALL_GUMPH;
         const ENTRY_ROW_HEIGHT = PROFILE_PIC_DIM + main.SMALL_GUMPH;
 
         for (let i = 0; i < entries.length && i < MAX_ENTRIES; ++i) {
@@ -304,36 +329,20 @@ function createEntries(leaderboard: ILeaderboard, count: number, offset: number)
             const rank = offset + i + 1;
 
             // create a picture and then the text
-            const entryText = new MultiStyleText("", {
-                default: {
-                    fill: "0xFFFFFF",
-                    fontSize: "18px",
-                    lineJoin: "round",
-                    stroke: "0x0",
-                    strokeThickness: "4",
-                },
-                points: {
-                    fill: "0xFF8888",
-                    fontSize: "25px",
-                    lineJoin: "round",
-                    stroke: "0x0",
-                    strokeThickness: "4",
-                },
-            });
-
-            entryText.text = rank + ". " + entry.getPlayer().getName() + "\n";
-            entryText.text += "<points>" + entry.getFormattedScore() + "</points>";
-            entryText.x = LEFT_WITH_MARGIN + PROFILE_PIC_DIM + main.SMALL_GUMPH;
-            entryText.y = TOP_Y + ENTRY_ROW_HEIGHT * i;
-            leaderboardContainer.addChild(entryText);
-
             const entrySprite = PIXI.Sprite.fromImage(entry.getPlayer().getPhoto());
             entrySprite.width = PROFILE_PIC_DIM;
             entrySprite.height = PROFILE_PIC_DIM;
             entrySprite.anchor.set(0.5);
             entrySprite.x = LEFT_WITH_MARGIN + 0.5 * entrySprite.width;
-            entrySprite.y = TOP_Y + (ENTRY_ROW_HEIGHT * i) + 0.5 *  entrySprite.height;
+            entrySprite.y = TOP_Y + (ENTRY_ROW_HEIGHT * i) + 0.5 * entrySprite.height;
             leaderboardContainer.addChild(entrySprite);
+
+            const entryText = new MultiStyleText("", main.FONT_STYLES);
+            entryText.text = "<smaller>" + rank + ". " + entry.getPlayer().getName() + "</smaller>\n";
+            entryText.text += "<medium>" + entry.getFormattedScore() + "</medium>";
+            entryText.x = LEFT_WITH_MARGIN + PROFILE_PIC_DIM + 2 * main.SMALL_GUMPH;
+            entryText.y = TOP_Y + ENTRY_ROW_HEIGHT * i;
+            leaderboardContainer.addChild(entryText);
 
             entryPicBackingGfx.drawRect(entrySprite.x - 0.5 * entrySprite.width,
                 entrySprite.y - 0.5 * entrySprite.height,
@@ -341,11 +350,11 @@ function createEntries(leaderboard: ILeaderboard, count: number, offset: number)
 
             const isPlayer = entry.getPlayer().getID() === MSGlobal.PlatformInterface.getPlayerID();
             const outlineObject = isPlayer ? playerEntryOutline : entryOutline;
-            const BACKING_LEFT_X = entrySprite.x + 0.5 * entrySprite.width + main.SMALL_GUMPH;
-            const BACKING_WIDTH = main.g_ScaledRendererWidth;
+            const BACKING_LEFT_X = entryText.x - main.SMALL_GUMPH;
+            const W = BACKING_WIDTH - (BACKING_LEFT_X - LEFT) - main.SMALL_GUMPH;
             outlineObject.drawRoundedRect(BACKING_LEFT_X,
                     TOP_Y + (ENTRY_ROW_HEIGHT * i),
-                                        BACKING_WIDTH, PROFILE_PIC_DIM,
+                                        W, PROFILE_PIC_DIM,
                                         8);
         }
         entryOutline.endFill();
@@ -363,7 +372,6 @@ export function doProcess() {
     if (Options.isOnShow()) {
         Options.process();
     } else if (gameOverPopUpContainer) {
-        const TIME_FOR_GAME_OVER_SECS = 1.5;
         if ((Date.now() - gameOverShowStartMS) / 1000 >= TIME_FOR_GAME_OVER_SECS) {
             gameOverT *= 0.9;
             if (gameOverT <= 0.01) {
@@ -372,7 +380,11 @@ export function doProcess() {
                 gameOverPopUpContainer = null;
                 showEverything();
             } else {
-                gameOverPopUpContainer.position.y = (1.0 - gameOverT) * main.g_ScaledRendererHeight;
+                gameOverButton.setCenterPos(vec2.fromValues(
+                    main.g_HalfScaledRendererWidth,
+                    gameOverT * main.g_HalfScaledRendererHeight +
+                    (1.0 - gameOverT) * (main.g_ScaledRendererHeight + 1.1 * gameOverButton.getHalfHeight()),
+                ));
             }
         }
     } else {
