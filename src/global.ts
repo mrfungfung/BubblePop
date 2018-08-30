@@ -18,8 +18,9 @@ declare var process: any;
 import {IPlatform, PlatformAPI} from "./platform";
 export const PlatformInterface: IPlatform = new PlatformAPI();
 
-export const BOT_SERVER = "https://fbbotserver.herokuapp.com";
-// export const BOT_SERVER = "http://localhost:5000";
+export const BOT_SERVER = process.env.NODE_ENV === "development" ?
+                            "http://localhost:5000" :
+                            "https://fbbotserver.herokuapp.com";
 
 // *********************************************************
 export function log(v: any): void {

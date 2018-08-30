@@ -1,4 +1,3 @@
-// make it not look like shit
 // bottage: cron job - check all dates in context
 // bottage: (10 mins coins lol ready bonus) (after 3 days no play - FREE coin) (5 days no play? - FREE COIN reminder)
 // sound
@@ -14,9 +13,6 @@
 // - er make a player profile sigh what an idiot (level + coins, shop items)
 
 // ideas: plane challenger, amiga zombie clicker, fomo3d
-
-// future iap
-// -- gfx explosions
 
 import { shim } from "promise.prototype.finally";
 shim();
