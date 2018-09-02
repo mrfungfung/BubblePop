@@ -15,6 +15,7 @@ let playButton: Button = null;
 let startButton: Button = null;
 let shopButton: Button = null;
 let optionsButton: Button = null;
+let inviteButton: Button = null;
 
 // spritesss
 const MAX_DX = 200;
@@ -105,6 +106,16 @@ export function show() {
     titleContainer.addChild(startButton.m_Sprite);
     titleContainer.addChild(startButton.m_Text);
 
+    inviteButton = new Button("", null);
+    const inviteTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./inviteButton.png"]);
+    inviteButton.setSprite(inviteTexture.baseTexture);
+    inviteButton.setSizeToSprite(0);
+    inviteButton.setCenterPos(vec2.fromValues(
+        main.g_HalfScaledRendererWidth,
+        startButton.getBottomY() + main.GUMPH + 0.5 * inviteButton.getHalfHeight(),
+    ));
+    titleContainer.addChild(inviteButton.m_Sprite);
+
     optionsButton = new Button("", null);
     const settingsTexture = Texture.fromImage(MSGlobal.ASSET_DIR["./btn_settings@2x.png"]);
     optionsButton.setSprite(settingsTexture.baseTexture);
@@ -189,6 +200,13 @@ export function processInput(clicked: boolean,
                 titleContainer.visible = false;
                 CoinsButton.hide();
                 CoinShop.show();
+            } else if (inviteButton.contains(vec2.fromValues(screenX, screenY))) {
+                MSGlobal.PlatformInterface.chooseAsync()
+                .then(function() {
+                    // return true;
+                }).catch((error: any) => {
+                    MSGlobal.error(error);
+                });
             }
         }
     }

@@ -490,7 +490,13 @@ export function processInput(clicked: boolean,
                 CoinShop.show();
             } else if (restartButton.contains(vec2.fromValues(screenX, screenY))) {
                 MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("restart", null, null);
-                resetGame();
+                MSGlobal.PlatformInterface.chooseAsync()
+                .then(function() {
+                    resetGame();
+                }).catch((error: any) => {
+                    resetGame();
+                    MSGlobal.error(error);
+                });
             } else if (playWithFriendsButton &&
                         playWithFriendsButton.contains(vec2.fromValues(screenX, screenY))) {
                 MSGlobal.PlatformInterface.getAnalyticsManager().logEvent("playWithFriendsButton", null,
