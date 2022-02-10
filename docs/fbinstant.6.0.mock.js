@@ -110,7 +110,7 @@ var FBInstant = {
         chooseAsync: function() {
             return new Promise(function(resolve, reject){
                 Utils.log('context.chooseAsync');
-                resolve
+                resolve()
                 // Utils.createAlert(
                 //     {
                 //         message:'Choosing a new context', 
@@ -124,7 +124,7 @@ var FBInstant = {
         switchAsync: function(contextId) {
             return new Promise(function(resolve, reject){
                 Utils.log('context.switchAsync');
-                resolve
+                resolve()
                 // Utils.createAlert(
                 //     {
                 //         message:'Switching to a new context ('+contextId+')',
@@ -137,7 +137,7 @@ var FBInstant = {
         createAsync: function(userId) {
             return new Promise(function(resolve, reject){
                 Utils.log('context.createAsync');
-                resolve
+                resolve()
                 // Utils.createAlert(
                 //     {
                 //         message:'Switching to a conversation with player '+ playerId,
@@ -288,7 +288,7 @@ var FBInstant = {
         message += 'Share payload: ' + JSON.stringify(options.data);
 
         return new Promise(function(resolve, reject) {
-            resolve
+            resolve()
             // Utils.createAlert(
             //     {
             //         title: 'Shared content',
